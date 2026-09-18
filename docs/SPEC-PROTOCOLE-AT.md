@@ -20,11 +20,12 @@ servir de base à l'implémentation de `pyneosol`.
 - [9. Compteur de synchronisation](#9-compteur-de-synchronisation)
 - [10. Appairage d'un volet](#10-appairage-dun-volet)
 - [11. Positionnement intermédiaire](#11-positionnement-intermédiaire)
-- [12. Commandes dangereuses](#12-commandes-dangereuses)
-- [13. Séquence d'initialisation de la box](#13-séquence-dinitialisation-de-la-box)
-- [14. Points non validés](#14-points-non-validés)
-- [15. Notes d'implémentation](#15-notes-dimplémentation)
-- [16. Références](#16-références)
+- [12. Absence de réception radio](#12-absence-de-réception-radio)
+- [13. Commandes dangereuses](#13-commandes-dangereuses)
+- [14. Séquence d'initialisation de la box](#14-séquence-dinitialisation-de-la-box)
+- [15. Points non validés](#15-points-non-validés)
+- [16. Notes d'implémentation](#16-notes-dimplémentation)
+- [17. Références](#17-références)
 
 ---
 
@@ -134,12 +135,13 @@ AT$CP=<power>
 | `AT$P=` | paramètre indéterminé | ❓ |
 | `AT$SF=` | émettre une trame radio | ✅ |
 | `AT$SN=` | définir un numéro de série | ❓ |
-| `AT$CW=` | mode indéterminé | ❓ |
+| `AT$CW=` | mode indéterminé — ⚠️ voir la mise en garde en [§12](#12-absence-de-réception-radio) | ❓ |
 | `AT$TR=` | temporisations d'émission | 🟡 |
-| `AT$CP=` | puissance d'émission | 🟡 |
+| `AT$CP=` | puissance d'émission — lisible, vaut `14` sur le matériel testé | 🟡 |
 
-Les commandes de lecture s'obtiennent en remplaçant `=` par `?` : `AT$C?`, `AT$CP?`,
-`AT$TR?`, `AT$SN?`, `AT$CW?`, `AT$P?`.
+⚠️ **Toutes les commandes n'acceptent pas de forme interrogative.** Seules **`AT$C?`** et
+**`AT$CP?`** retournent une valeur ; `AT$TR?`, `AT$SN?`, `AT$CW?` et `AT$P?` répondent `:KO` et
+n'existent donc qu'en écriture. Détail des réponses en [§12](#12-absence-de-réception-radio).
 
 ---
 
@@ -240,7 +242,7 @@ Réponse (valeurs factices) :
 L'appairage ne génère donc **aucune clé** : il fait accepter par le moteur l'une des identités
 déjà présentes dans le dongle.
 
-> Cela tranche une question restée ouverte dans les travaux antérieurs (cf. §16) : le
+> Cela tranche une question restée ouverte dans les travaux antérieurs (cf. §17) : le
 > mécanisme n'est pas un apprentissage à clé arbitraire de type *Chamberlain Self-Learn*, mais
 > bien un stock d'identités préprovisionnées.
 
@@ -267,7 +269,7 @@ AT$C=<channel>,<serial>,<sync>,<key>
 - **resynchronisation** d'un compteur désaligné.
 
 > ⛔ Écrire sur un canal en service écrase l'identité qui fonctionne et fait perdre
-> l'appairage correspondant. Voir §12.
+> l'appairage correspondant. Voir §13.
 
 ---
 
@@ -303,6 +305,9 @@ commande de maintien.
 ⚠️ `AT$SF:OK` confirme uniquement que **le dongle a accepté et émis** la trame. Le dongle
 **ne renvoie aucun acquittement du moteur** : rien ne permet de savoir si un volet a
 effectivement bougé, ni quelle est sa position réelle.
+
+Le dongle ne remonte pas davantage les trames émises par les télécommandes — il n'a aucune
+capacité de réception exploitable, voir [§12](#12-absence-de-réception-radio).
 
 Toute notion de position doit donc être **estimée** côté logiciel (voir §11).
 
@@ -398,7 +403,54 @@ précision du pilotage n'est donc pas le facteur limitant — l'imprécision vie
 
 ---
 
-## 12. Commandes dangereuses
+## 12. Absence de réception radio
+
+✅ **Validé**
+
+Le dongle est un **émetteur seul**. Il ne remonte aucune information sur les trames radio
+émises autour de lui.
+
+### Observation
+
+Port série ouvert en écoute **strictement passive**, sans qu'aucune commande ne soit émise,
+pendant qu'une télécommande d'origine pilotait un volet — séquence montée, stop, descente,
+stop, puis descente jusqu'en butée basse.
+
+**Résultat : aucun octet reçu.** Les moteurs ont pourtant obéi, les trames étaient donc bien
+présentes sur la bande.
+
+### Aucun mode d'écoute exposé
+
+Aucun paramètre du firmware ne laisse entrevoir une réception activable. Sur les cinq
+paramètres interrogés, un seul répond :
+
+| Requête | Réponse |
+|---|---|
+| `AT$CP?` | `14` puis `AT$CP:OK` |
+| `AT$CW?` | `AT$CW:KO` |
+| `AT$P?` | `AT$P:KO` |
+| `AT$SN?` | `AT$SN:KO` |
+| `AT$TR?` | `AT$TR:KO` |
+
+⚠️ `AT$CW=<mode>` n'a **pas** été testé en écriture. En radio, *CW* désigne habituellement une
+*continuous wave*, une porteuse continue servant aux essais d'émission. L'activer à l'aveugle
+ferait courir le risque d'une émission permanente sur la bande. À ne pas explorer sans
+précaution.
+
+### Conséquences
+
+- aucune confirmation qu'un moteur a exécuté une commande ;
+- aucune position réelle ne peut être obtenue ;
+- **les commandes passées depuis une télécommande physique restent invisibles** : une position
+  estimée dérive alors sans autre recalage possible qu'un envoi en butée.
+
+Un véritable retour d'état supposerait un **récepteur distinct** — typiquement un CC1101 en
+réception sur 868,425 MHz décodant les trames des télécommandes — ce qui sort du périmètre de
+cette bibliothèque.
+
+---
+
+## 13. Commandes dangereuses
 
 ⛔ À manipuler avec précaution — ces opérations peuvent faire perdre des appairages.
 
@@ -418,9 +470,9 @@ précision du pilotage n'est donc pas le facteur limitant — l'imprécision vie
 
 ---
 
-## 13. Séquence d'initialisation de la box
+## 14. Séquence d'initialisation de la box
 
-🟡 **Partiel** — séquence issue de l'analyse du greffon de la box (cf. §16), non nécessaire au
+🟡 **Partiel** — séquence issue de l'analyse du greffon de la box (cf. §17), non nécessaire au
 pilotage.
 
 ```
@@ -449,27 +501,36 @@ Deux points de l'analyse antérieure sont infirmés par l'observation directe :
 
 ---
 
-## 14. Points non validés
+## 15. Points non validés
 
 À confirmer par l'expérimentation :
 
 - [ ] `AT$SF=<canal>,4` — position favorite : comportement et pré-requis de configuration
 - [ ] `AT$SF=<canal>,14` — *unregister* : effet réel côté moteur
+- [ ] **Codes d'action non attribués** — `3`, `5` à `10`, `12`, `13`. L'interface de la box
+      expose des actions sans correspondance connue à ce jour : `FAV_SET_1`, `FAV_CALL_2`,
+      `FAV_SET_2`, `TILT` (inclinaison, pour les BSO) et `POSITION`. Elles occupent
+      vraisemblablement une partie de ces codes.
+      > ⛔ **Ne pas balayer ces codes à l'aveugle.** Sur ce type de motorisation, certaines
+      > séquences radio servent au réglage des **fins de course** : un code envoyé au hasard
+      > risque de dérégler les butées haute et basse du volet. Les codes `11` et `14` agissent
+      > déjà sur la configuration du moteur, cette zone n'a donc rien d'anodin.
 - [ ] `AT$C=` — écriture d'identité, restauration et migration vers un autre dongle
 - [ ] `AT$P=`, `AT$CW=`, `AT$SN=` — rôle et valeurs admises
 - [ ] `AT$TR=` et `AT$CP=` — effet mesurable sur la portée et la fiabilité d'émission
 - [ ] `ATQ<n>` — effet du *quiet mode* sur le format des réponses
 - [ ] `A/` — répétition de la dernière commande
 - [ ] `Read Protection Active : 1` — conséquences sur `AT$C?`
-- [ ] Trames binaires : d'anciens travaux mentionnent un décodage de paquets en réponse aux
-      `AT$SF`, non observé ici
+- [ ] Trames binaires : d'anciens travaux mentionnent un décodage de paquets binaires renvoyés
+      par le dongle. Aucun n'a été observé, ni en réponse à `AT$SF`, ni spontanément (§12) —
+      reste à savoir s'ils apparaissent dans un mode ou une configuration particulière
 - [ ] Comportement avec plusieurs dongles simultanément à portée
 - [ ] Portée radio effective et influence de l'antenne
 - [ ] Autres références de dongle et autres révisions de firmware
 
 ---
 
-## 15. Notes d'implémentation
+## 16. Notes d'implémentation
 
 Recommandations pour `pyneosol`, issues des observations ci-dessus.
 
@@ -504,7 +565,7 @@ Recommandations pour `pyneosol`, issues des observations ci-dessus.
 
 ---
 
-## 16. Références
+## 17. Références
 
 - [OpenProfalux](https://github.com/Isno-Open/OpenProfalux) — firmware ESP32 + CC1101 pour
   volets Profalux 868 MHz. Son document `docs/PROTOCOLE-DONGLE-AT.md` décrit le protocole AT
