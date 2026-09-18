@@ -147,9 +147,46 @@ Version` et `Software Version` sont les deux valeurs à communiquer en cas de pr
 
 ## État du projet
 
-🚧 **Travaux en cours.** Le protocole est documenté dans
-[`docs/SPEC-PROTOCOLE-AT.md`](docs/SPEC-PROTOCOLE-AT.md) ; l'implémentation Python reste à
-écrire.
+🚧 **Alpha.** Le pilotage fonctionne et le protocole est documenté dans
+[`docs/SPEC-PROTOCOLE-AT.md`](docs/SPEC-PROTOCOLE-AT.md). L'API peut encore changer.
+
+---
+
+## Installation
+
+```bash
+pip install git+https://github.com/bbayszczak/pyneosol
+```
+
+## Utilisation
+
+```python
+from pyneosol import Dongle
+
+with Dongle.open() as dongle:  # détection automatique du port
+    print(dongle.info().software_version)
+
+    for channel in dongle.used_channels():
+        print(channel)  # la clé n'est jamais affichée
+
+    dongle.close_shutter(0)  # descente
+    dongle.stop(0)  # arrêt en cours de course
+    dongle.favourite(0)  # position favorite
+```
+
+Le port peut aussi être imposé : `Dongle.open("/dev/ttyACM0")`.
+
+> ⚠️ **Aucun retour d'état.** Le dongle ne fait qu'émettre. Une commande acceptée signifie
+> qu'une trame est partie, jamais qu'un volet a bougé, et aucune position n'est lisible.
+> Toute notion d'état ou de position relève de la couche appelante.
+
+## Développement
+
+```bash
+uv run ruff check .      # lint
+uv run ruff format .     # formatage
+uv run pytest            # tests — aucun matériel requis, le dongle est simulé
+```
 
 ---
 
