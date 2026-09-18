@@ -290,7 +290,7 @@ AT$SF=<channel>,<code>
 | `0` | ouvrir / monter | ✅ validé |
 | `1` | fermer / descendre | ✅ validé |
 | `2` | stop | ✅ validé |
-| `4` | position favorite | ❓ non testé |
+| `4` | appel de la position favorite | ✅ validé |
 | `11` | enregistrer — *register* | ✅ validé (voir §10) |
 | `14` | désenregistrer — *unregister* | ❓ non testé |
 
@@ -299,6 +299,56 @@ AT$SF=<channel>,<code>
 Les moteurs fonctionnent en **appui bref** : une commande `0` ou `1` lance le moteur, qui
 poursuit sa course jusqu'à la butée ou jusqu'à réception d'un `2` (stop). Il n'existe pas de
 commande de maintien.
+
+### Position favorite
+
+✅ **Validé** — le code `4` demande au moteur de rejoindre sa **position favorite**, une
+position mémorisée **dans le moteur** et non dans le dongle.
+
+La vérification s'est faite en deux temps, le premier essai ayant été non concluant :
+
+1. **Appel alors qu'un favori réglé en butée haute était enregistré** → le volet est monté
+   jusqu'en haut. Résultat ambigu : compatible aussi bien avec un appel de favori qu'avec une
+   simple commande de montée.
+2. **Nouveau favori enregistré à une position intermédiaire**, volet placé ailleurs, puis
+   nouvel appel → **le volet a rejoint cette position et s'y est arrêté**. Aucune commande de
+   mouvement ordinaire ne provoque un arrêt en cours de course : l'attribution est confirmée.
+
+> 💡 Un favori positionné sur une butée rend le test indiscernable d'une commande de
+> mouvement. Toute vérification doit donc porter sur une position **franchement
+> intermédiaire**.
+
+#### Enregistrer la position favorite
+
+✅ **Validé** — **l'enregistrement ne passe pas par le dongle**, il s'effectue sur la
+télécommande d'origine :
+
+1. amener le volet à la position souhaitée ;
+2. appuyer **simultanément** sur **montée** et **descente**, et maintenir environ
+   **5 secondes** ;
+3. le moteur confirme par un **bref aller-retour de quelques millimètres**.
+
+La position est alors mémorisée dans le moteur, et rappelable par `AT$SF=<canal>,4`.
+
+**Aucun code `AT$SF` ne permet cet enregistrement**, et il n'en existe vraisemblablement pas.
+L'analyse du greffon de la box (cf. §17) établit qu'il n'émet que **six** actions —
+`open`, `close`, `stop`, `fav_pos1`, `register`, `unregister` — ce que corroborent ses propres
+traces internes (« *Motorisation commands open/stop/close/fav_pos1 will be repeated N times* »)
+et son gestionnaire d'action, qui ne traite que ces quatre mouvements. **La box elle-même ne
+sait donc pas enregistrer un favori par radio.**
+
+Les entrées `FAV_SET_1`, `FAV_SET_2` et `FAV_CALL_2` visibles dans le code de l'interface web
+appartiennent à sa liste d'actions **masquées** : ce code est commun à tous les types
+d'équipements gérés par la box, et ces actions ne s'appliquent pas à ce driver. Elles ne
+signalent donc pas un code restant à découvrir — plutôt l'inverse.
+
+> ⛔ Chercher un `FAV_SET` en balayant les codes non attribués reviendrait à traquer une
+> fonction qui n'existe probablement pas, au prix d'un risque réel de dérèglement des fins de
+> course (§15). L'enregistrement à la télécommande décrit ci-dessus rend cette recherche
+> inutile.
+
+Le driver de la box connaît **deux** positions favorites (`FAV_CALL_1` et `FAV_CALL_2`). Seul
+l'appel de la première dispose à ce jour d'un code identifié.
 
 ### Absence de retour d'état
 
@@ -505,8 +555,10 @@ Deux points de l'analyse antérieure sont infirmés par l'observation directe :
 
 À confirmer par l'expérimentation :
 
-- [ ] `AT$SF=<canal>,4` — position favorite : comportement et pré-requis de configuration
 - [ ] `AT$SF=<canal>,14` — *unregister* : effet réel côté moteur
+- [ ] Second favori (`FAV_CALL_2`) et enregistrement par trame (`FAV_SET_1`, `FAV_SET_2`) :
+      probablement **inexistants** côté protocole, le greffon de la box n'émettant que six
+      actions (§8). À ne pas rechercher en balayant les codes non attribués.
 - [ ] **Codes d'action non attribués** — `3`, `5` à `10`, `12`, `13`. L'interface de la box
       expose des actions sans correspondance connue à ce jour : `FAV_SET_1`, `FAV_CALL_2`,
       `FAV_SET_2`, `TILT` (inclinaison, pour les BSO) et `POSITION`. Elles occupent
