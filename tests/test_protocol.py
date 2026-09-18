@@ -1,0 +1,93 @@
+"""Parsing rules, exercised on the exact shapes the device produces."""
+
+from __future__ import annotations
+
+import pytest
+
+from pyneosol import protocol
+from pyneosol.exceptions import ProtocolError
+
+
+def test_split_lines_drops_the_blank_line_between_each():
+    raw = "\r\nPFX KEELOQ\r\n\r\nHardware Version:  0\r\n\r\nAT&V:OK\r\n"
+    assert protocol.split_lines(raw) == ["PFX KEELOQ", "Hardware Version:  0", "AT&V:OK"]
+
+
+@pytest.mark.parametrize(
+    ("line", "expected"),
+    [
+        ("AT&V:OK", ("AT&V", "OK")),
+        ("AT$SF:OK", ("AT$SF", "OK")),
+        ("AT?:OK", ("AT?", "OK")),  # AT? keeps its question mark
+        ("AT$C:OK", ("AT$C", "OK")),  # AT$C? drops it
+        ("AT$CW:KO", ("AT$CW", "KO")),
+        ("KO", (None, "KO")),  # bare KO: the verb itself is unknown
+    ],
+)
+def test_is_terminator_recognises_both_rejection_forms(line, expected):
+    assert protocol.is_terminator(line) == expected
+
+
+@pytest.mark.parametrize("line", ["PFX KEELOQ", "0,000AAAA1,0029, 00112233445566AA", "14"])
+def test_is_terminator_ignores_payload_lines(line):
+    assert protocol.is_terminator(line) is None
+
+
+def test_find_terminator_returns_none_while_the_response_is_incomplete():
+    assert protocol.find_terminator(["PFX KEELOQ", "Hardware Version:  0"]) is None
+
+
+def test_payload_strips_the_terminator():
+    assert protocol.payload(["14", "AT$CP:OK"]) == ["14"]
+
+
+def test_parse_channel_line_handles_the_space_before_the_key():
+    channel = protocol.parse_channel_line("2,000AAAA3,0029, 00112233445566CC")
+    assert channel is not None
+    assert channel.index == 2
+    assert channel.serial == "000AAAA3"
+    assert channel.sync == 0x29  # hexadecimal, so 41
+    assert channel.key == "00112233445566CC"
+
+
+def test_parse_channel_line_rejects_anything_else():
+    assert protocol.parse_channel_line("AT$C:OK") is None
+    assert protocol.parse_channel_line("PFX KEELOQ") is None
+
+
+def test_parse_channel_table_sorts_and_ignores_the_terminator():
+    lines = [
+        "1,000AAAA2,0009, 00112233445566BB",
+        "0,000AAAA1,0029, 00112233445566AA",
+        "AT$C:OK",
+    ]
+    channels = protocol.parse_channel_table(lines)
+    assert [channel.index for channel in channels] == [0, 1]
+
+
+def test_parse_info_reads_identification_and_flags():
+    lines = [
+        "PFX KEELOQ",
+        "Hardware Version:  0",
+        "Software Version: Rev10",
+        "S/N: 00001234",
+        "ACTIVE CONFIG :",
+        "Return Code Active : 1",
+        "Frame Repeat Nb : T0=25,T1=15,T2=70,T3=70",
+        "Read Protection Active : 0",
+    ]
+    info = protocol.parse_info(lines)
+    assert info.hardware_version == "0"
+    assert info.software_version == "Rev10"
+    assert info.frame_repeat == "T0=25,T1=15,T2=70,T3=70"
+    assert info.return_code_active is True
+    assert info.read_protection is False
+
+
+def test_parse_info_requires_the_identification_marker():
+    with pytest.raises(ProtocolError):
+        protocol.parse_info(["Hardware Version:  0", "Software Version: Rev10"])
+
+
+def test_encode_appends_the_line_terminator():
+    assert protocol.encode("AT&V") == b"AT&V\r\n"
