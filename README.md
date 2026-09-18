@@ -1,9 +1,10 @@
 # pyneosol
 
-Python library to control Profalux Neosol 868 MHz roller shutters through the official USB dongle and its AT serial protocol. Fully local, no box, no cloud.
+Python library for 868 MHz roller shutter USB dongles speaking the `PFX` AT serial protocol. Compatible with Profalux Neosol roller shutters and the `DONGLE868-1A`. Fully local, no box, no cloud.
 
-> Piloter ses volets roulants Profalux Neosol 868 MHz en Python, directement via
-> le dongle USB officiel — sans la box Calyps'HOME et sans le cloud.
+> Bibliothèque Python pour les dongles USB 868 MHz utilisant le protocole série AT
+> « PFX ». **Compatible avec** les volets roulants Profalux Neosol — sans la box
+> Calyps'HOME ni le cloud.
 
 ---
 
@@ -18,6 +19,10 @@ propriétaires respectifs. Ils ne sont utilisés ici que pour **décrire le mat�
 cette bibliothèque est susceptible de communiquer**, à des fins d'interopérabilité. Aucun code,
 aucune ressource et aucune documentation du fabricant n'est redistribué dans ce dépôt.
 
+- 🏷️ **Le nom du projet n'emporte aucune affiliation** — `pyneosol` est un nom d'usage choisi
+  pour sa lisibilité. Il ne constitue ni une marque, ni une revendication d'origine, ni une
+  autorisation du titulaire de la marque *Neosol*. Cette bibliothèque est un composant tiers
+  **compatible avec** ce matériel, et rien d'autre.
 - ✋ **Projet non officiel** — développé de manière indépendante, sans aucun lien avec le
   fabricant, qui n'en assure ni le développement ni le support.
 - 🔍 **Obtenu par rétro-ingénierie** — le protocole documenté ici a été reconstitué par
@@ -46,8 +51,8 @@ conditions.**
 
 ## Matériel
 
-Cette bibliothèque cible le dongle USB 868 MHz distribué pour les volets roulants Profalux
-Neosol.
+Cette bibliothèque est **compatible avec** le dongle USB 868 MHz distribué pour les volets
+roulants Profalux Neosol. Elle n'est ni fournie, ni distribuée, ni approuvée par le fabricant.
 
 | | |
 |---|---|
