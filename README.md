@@ -1,6 +1,8 @@
 # pyneosol
 
-Python library for 868 MHz roller shutter USB dongles speaking the `PFX` AT serial protocol. Compatible with Profalux Neosol roller shutters and the `DONGLE868-1A`. Fully local, no box, no cloud.
+Python library for 868 MHz roller shutter USB dongles speaking the `PFX` AT
+serial protocol. Compatible with Profalux Neosol roller shutters and the
+`DONGLE868-1A` (commercial ref. MAI-DONGLE868CH-NC). Fully local, no box, no cloud.
 
 > Bibliothèque Python pour les dongles USB 868 MHz utilisant le protocole série AT
 > « PFX ». **Compatible avec** les volets roulants Profalux Neosol — sans la box
@@ -10,42 +12,58 @@ Python library for 868 MHz roller shutter USB dongles speaking the `PFX` AT seri
 
 ## ⚠️ Avertissement / Disclaimer
 
-**Ce projet est totalement indépendant et n'est en aucun cas affilié, soutenu, approuvé ou
-validé par Profalux, Neosol, Calyps'HOME, Athemium, Avidsen, ou l'une quelconque de leurs
-filiales ou marques.**
+> **Unofficial project.** This library is an independent work. It is not affiliated
+> with, endorsed, sponsored or approved by Profalux, Stella Advanced Technology, or
+> any of their affiliates. All trademarks belong to their respective owners.
 
-Les noms *Profalux*, *Neosol* et *Calyps'HOME* sont des marques déposées par leurs
-propriétaires respectifs. Ils ne sont utilisés ici que pour **décrire le matériel avec lequel
-cette bibliothèque est susceptible de communiquer**, à des fins d'interopérabilité. Aucun code,
-aucune ressource et aucune documentation du fabricant n'est redistribué dans ce dépôt.
+**Ce projet est totalement indépendant et n'est en aucun cas affilié, soutenu, approuvé
+ou validé par Profalux, Stella Advanced Technology, ou l'une quelconque de leurs
+filiales, marques, sociétés apparentées, sous-traitants ou partenaires.**
 
-- 🏷️ **Le nom du projet n'emporte aucune affiliation** — `pyneosol` est un nom d'usage choisi
-  pour sa lisibilité. Il ne constitue ni une marque, ni une revendication d'origine, ni une
-  autorisation du titulaire de la marque *Neosol*. Cette bibliothèque est un composant tiers
-  **compatible avec** ce matériel, et rien d'autre.
-- ✋ **Projet non officiel** — développé de manière indépendante, sans aucun lien avec le
-  fabricant, qui n'en assure ni le développement ni le support.
-- 🔍 **Obtenu par rétro-ingénierie** — le protocole documenté ici a été reconstitué par
-  observation du dialogue série avec un dongle acquis légalement, dans le seul but
-  d'interopérer avec du matériel dont l'utilisateur est propriétaire.
-- 🚫 **Aucune garantie** — ce logiciel est fourni « tel quel », **sans aucune garantie
-  d'aucune sorte**, expresse ou implicite, y compris, sans s'y limiter, les garanties de
-  qualité marchande, d'adéquation à un usage particulier et d'absence de contrefaçon.
-- ⚠️ **Utilisation à vos risques et périls** — l'auteur ne saurait être tenu responsable de
-  quelque dommage que ce soit : dysfonctionnement, détérioration de matériel, perte de
-  configuration ou d'appairage, perte de données, ou tout dommage direct ou indirect résultant
-  de l'utilisation de cette bibliothèque.
-- 🔌 **Risque sur le matériel** — certaines commandes du dongle sont **destructives** et
-  peuvent effacer ses appairages (voir la section *Commandes dangereuses* des
-  [spécifications](docs/SPEC-PROTOCOLE-AT.md)). Sauvegardez la configuration de votre dongle
-  avant toute expérimentation.
-- 🛠️ **Garantie constructeur** — l'usage de ce logiciel avec votre matériel est susceptible
-  d'en annuler la garantie. Vérifiez-le avant de l'utiliser.
-- 🤝 **Support limité** — assuré bénévolement, sans engagement de délai ni de résultat.
-- 📝 **Licence MIT** — voir [LICENSE](LICENSE).
+*Profalux*, *Stella Advanced Technology*, *Neosol*, *NeosoL* et *Calyps'HOME* sont des
+marques de leurs titulaires respectifs. Elles ne sont citées ici que pour **décrire le
+matériel avec lequel cette bibliothèque est susceptible de communiquer**, à des fins
+d'interopérabilité. Aucun code, aucun binaire, aucun micrologiciel, aucune clé
+cryptographique et aucune documentation du fabricant n'est reproduit ni redistribué
+dans ce dépôt.
 
-**En utilisant cette bibliothèque, vous reconnaissez avoir lu et accepté l'ensemble de ces
-conditions.**
+**Nom du projet** — `pyneosol` est un nom d'usage choisi pour sa lisibilité. Il
+n'emporte aucune affiliation, ne constitue ni une marque, ni une revendication
+d'origine, ni une autorisation du titulaire de la marque *Neosol*. Cette bibliothèque
+est un composant tiers **compatible avec** ce matériel, et rien d'autre.
+
+**Méthode** — le protocole documenté ici a été reconstitué par la seule observation du
+dialogue série avec un dongle acquis légalement, sur une installation appartenant à
+l'auteur. Aucune décompilation de micrologiciel, aucune extraction ni publication de
+clé cryptographique constructeur n'a été réalisée. Ce travail relève de l'exception
+d'interopérabilité (art. L122-6-1 III et IV du Code de la propriété intellectuelle,
+directive 2009/24/CE art. 5 et 6).
+
+**Usage** — cette bibliothèque est destinée au pilotage d'équipements dont vous êtes
+propriétaire ou légitime utilisateur, et à eux seuls.
+
+**Absence de garantie** — ce logiciel est fourni « tel quel », sans aucune garantie
+d'aucune sorte, expresse ou implicite, y compris, sans s'y limiter, les garanties de
+qualité marchande, d'adéquation à un usage particulier et d'absence de contrefaçon.
+Dans les limites permises par le droit applicable, l'auteur ne saurait être tenu
+responsable d'un quelconque dommage : dysfonctionnement, détérioration de matériel,
+perte de configuration ou d'appairage, perte de données, ou tout dommage direct ou
+indirect résultant de l'utilisation de cette bibliothèque.
+
+**Risque matériel** — certaines commandes du dongle sont **destructives** et peuvent
+effacer ses appairages (voir la section *Commandes dangereuses* des
+[spécifications](docs/SPEC-PROTOCOLE-AT.md)). Sauvegardez la configuration de votre
+dongle avant toute expérimentation.
+
+**Garantie constructeur** — l'usage de ce logiciel avec votre matériel est susceptible
+d'en affecter la garantie. Vérifiez-le avant de l'utiliser.
+
+**Support** — assuré bénévolement, sans engagement de délai ni de résultat.
+
+**Licence** — MIT, voir [LICENSE](LICENSE).
+
+En utilisant cette bibliothèque, vous reconnaissez avoir lu et accepté l'ensemble de
+ces conditions.
 
 ---
 
