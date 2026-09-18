@@ -68,6 +68,23 @@ Sur une box Athemium, le périphérique est exposé via le lien symbolique
 Un délai d'environ **400 ms** après l'ouverture du port est recommandé avant d'émettre la
 première commande.
 
+### Identification USB
+
+✅ **Validé** — le périphérique expose des métadonnées qui permettent de le détecter
+automatiquement, sans demander le port à l'utilisateur :
+
+| Champ | Valeur |
+|---|---|
+| Vendor ID | `0x10C4` (Silicon Laboratories) |
+| Product ID | `0x0003` |
+| Fabricant | `PROFALUX` |
+| Produit | `KEELOQ USB Device` |
+| Numéro de série USB | propre à chaque exemplaire |
+
+⚠️ Le VID `0x10C4` appartient à Silicon Labs et équipe quantité de périphériques série sans
+rapport. Il ne suffit donc pas à lui seul : la confirmation doit passer par la réponse
+`PFX KEELOQ` à `AT&V` (§5).
+
 ---
 
 ## 3. Format des échanges
@@ -93,9 +110,21 @@ sur le nom de la commande :
 | Terminaison | Sens |
 |---|---|
 | `<COMMANDE>:OK` | succès — ex. `AT&V:OK`, `AT$SF:OK`, `AT?:OK` |
-| `<COMMANDE>:KO` | échec |
+| `<COMMANDE>:KO` | commande **reconnue**, mais forme ou paramètres refusés |
+| `KO` *(sans préfixe)* | commande **inconnue** du firmware |
 
 C'est le marqueur à utiliser pour détecter la fin d'une réponse, plutôt qu'un délai fixe.
+
+✅ **Validé** — la distinction entre les deux formes de rejet est exploitable : elle permet de
+savoir si un firmware *connaît* une commande, indépendamment du fait qu'il accepte ce qu'on lui
+passe. Utile pour sonder les différences entre révisions sans rien modifier.
+
+```
+ATI       →  KO           commande inconnue
+AT&V0     →  AT&V:KO      AT&V reconnue, variante refusée
+AT$CP=?   →  AT$CP:KO     AT$CP reconnue, forme test non supportée
+AT        →  AT:OK        ping
+```
 
 > ℹ️ Le champ `Return Code Active : 1` de `AT&V` laisse penser que l'émission de ces
 > terminaisons est configurable, et qu'un dongle configuré à `0` n'en produirait pas. ❓
@@ -138,6 +167,20 @@ AT$CP=<power>
 | `AT$CW=` | mode indéterminé — ⚠️ voir la mise en garde en [§12](#12-absence-de-réception-radio) | ❓ |
 | `AT$TR=` | temporisations d'émission | 🟡 |
 | `AT$CP=` | puissance d'émission — lisible, vaut `14` sur le matériel testé | 🟡 |
+
+### Exhaustivité
+
+✅ **Validé** — `AT?` liste la **totalité** des commandes reconnues. Un sondage des commandes
+Hayes usuelles non déclarées (`ATI`, `ATI0`–`ATI9`, `AT+GMI`, `AT+GMM`, `AT+GMR`, `AT+GSN`)
+renvoie systématiquement `KO` nu : le firmware ne les connaît pas. Aucune information de
+version ou de build supplémentaire n'est donc accessible.
+
+Aucune **forme test** (`=?`) n'est implémentée non plus : `AT$CP=?`, `AT$TR=?`, `AT$SN=?`,
+`AT$CW=?` et `AT$P=?` répondent toutes `<COMMANDE>:KO`.
+
+> Sondage effectué avec relevé d'empreinte de la table des canaux et de `AT$CP?` avant et
+> après : **aucune modification**. `ATZ`, `AT&F` et toute forme de `AT$C=` avaient été exclues
+> du balayage (§13).
 
 ⚠️ **Toutes les commandes n'acceptent pas de forme interrogative.** Seules **`AT$C?`** et
 **`AT$CP?`** retournent une valeur ; `AT$TR?`, `AT$SN?`, `AT$CW?` et `AT$P?` répondent `:KO` et
