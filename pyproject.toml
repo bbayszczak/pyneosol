@@ -1,0 +1,77 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pyneosol"
+version = "0.1.0"
+description = "Python library for 868 MHz roller shutter USB dongles speaking the PFX AT serial protocol. Compatible with Profalux Neosol roller shutters and the MAI-DONGLE868-1A."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.13"
+authors = [{ name = "Benoit Bayszczak" }]
+keywords = ["profalux", "neosol", "calypshome", "keeloq", "868mhz", "rolling-shutter", "home-automation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Home Automation",
+    "Typing :: Typed",
+]
+dependencies = ["pyserial>=3.5"]
+
+[project.urls]
+Homepage = "https://github.com/bbayszczak/pyneosol"
+Repository = "https://github.com/bbayszczak/pyneosol"
+Specification = "https://github.com/bbayszczak/pyneosol/blob/main/docs/SPEC-PROTOCOLE-AT.md"
+
+[dependency-groups]
+dev = ["pytest>=8.3", "ruff>=0.13"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pyneosol"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "RET",  # flake8-return
+    "PTH",  # flake8-use-pathlib
+    "RUF",  # ruff-specific
+    "D",    # pydocstyle
+    "ANN",  # flake8-annotations
+    "TID",  # flake8-tidy-imports
+    "ARG",  # flake8-unused-arguments
+    "PL",   # pylint
+]
+ignore = [
+    "D203",  # conflicts with D211
+    "D213",  # conflicts with D212
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Les tests et leurs doublures n'ont pas besoin de docstrings ni d'annotations exhaustives :
+# les exiger ajoute du bruit sans rien apprendre au lecteur.
+"tests/**" = ["D", "ANN", "ARG", "PLR0911", "PLR2004"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
