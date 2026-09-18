@@ -1,0 +1,86 @@
+# CLAUDE.md
+
+Contexte pour Claude Code sur ce dépôt.
+
+## Le projet
+
+`pyneosol` est un **pilote bas niveau** pour les dongles USB 868 MHz parlant le protocole
+série AT « PFX », compatibles avec les volets roulants Profalux Neosol. Rien d'autre.
+
+Le protocole est intégralement décrit dans [`docs/SPEC-PROTOCOLE-AT.md`](docs/SPEC-PROTOCOLE-AT.md),
+reconstitué par rétro-ingénierie et **validé sur un `MAI-DONGLE868-1A` (HW `0`, SW `Rev10`)**.
+Chaque affirmation y porte un statut ✅ validé / 🟡 partiel / ❓ supposé : s'y référer avant
+d'implémenter quoi que ce soit, et ne jamais coder sur la foi d'un point ❓.
+
+## Structure
+
+```
+src/pyneosol/
+  protocol.py    encodage et parsing — fonctions pures, aucune I/O
+  transport.py   interface Transport + implémentation pyserial
+  dongle.py      driver synchrone, sérialise le dialogue
+  models.py      Action, Channel, DongleInfo
+  discovery.py   détection du port par identifiants USB
+  exceptions.py
+tests/
+  fake.py        faux dongle rejouant les réponses réelles
+```
+
+## Commandes
+
+```bash
+uv run ruff check .      # lint
+uv run ruff format .     # formatage
+uv run pytest            # tests, sans matériel
+```
+
+Toujours passer par `uv`. Python ≥ 3.13, CI sur 3.13 et 3.14.
+
+## Conventions
+
+- **Commits en Conventional Commits**, en anglais. `release-please` s'en sert pour produire le
+  CHANGELOG et la version : seuls `feat:` et `fix:` déclenchent une release.
+- Documentation en français, code et docstrings en anglais.
+- Le linter est strict (docstrings et annotations obligatoires dans `src/`) ; les tests en sont
+  dispensés via `per-file-ignores`.
+
+## Principes de conception
+
+- **Ce pilote ne connaît aucun état.** Le matériel est unidirectionnel : le dongle émet, le
+  moteur ne répond jamais. Une commande acceptée signifie qu'une trame est partie, jamais
+  qu'un volet a bougé. Toute position estimée, calibration ou persistance appartient à la
+  couche appelante — ne pas les faire remonter ici.
+- **Dialogue strictement séquentiel** : une commande en vol à la fois, protégée par un verrou,
+  tampon d'entrée vidé avant chaque envoi.
+- **Lire jusqu'à la terminaison**, jamais avec un délai fixe. `AT$C?` renvoie 51 lignes,
+  `AT$SF` une seule.
+- Cœur synchrone assumé : un appelant asynchrone (Home Assistant) délègue à un thread.
+
+## Pièges du protocole
+
+- Le nom repris dans la terminaison n'est pas toujours celui envoyé : `AT$C?` → `AT$C:OK`,
+  mais `AT?` → `AT?:OK`. D'où une détection par forme et non par nom attendu.
+- Deux formes de rejet, à ne pas confondre : `KO` nu = commande inconnue du firmware ;
+  `<COMMANDE>:KO` = commande connue, forme ou paramètres refusés.
+- Dans la table des canaux, un **espace** précède la clé, pas les autres champs.
+- Le compteur `sync` est en hexadécimal et s'incrémente à chaque trame émise, `register`
+  compris.
+
+## À ne pas faire
+
+- ⛔ **Ne jamais implémenter ni envoyer `ATZ`** (reset usine : efface la table des canaux,
+  donc tous les appairages), ni `AT&F`.
+- ⛔ **Ne pas exposer l'action `14`** (*unregister*) : destructive et jamais testée.
+- ⛔ **Ne pas balayer les codes d'action non attribués** (`3`, `5`–`10`, `12`, `13`) : le
+  risque est de dérégler les fins de course des moteurs.
+- ⛔ **Ne pas implémenter `AT$C=`** (écriture d'identité) tant qu'elle n'a pas été validée :
+  une écriture malformée écrase un appairage.
+
+## Sécurité
+
+La table des canaux contient les **clés KeeLoq** qui commandent les volets. Elles ne doivent
+apparaître **ni dans les logs, ni dans les `__repr__`, ni dans les messages d'exception** —
+`Channel.__repr__` et `DongleInfo.__repr__` les masquent déjà, garder cette propriété.
+
+Aucune clé, aucun numéro de série réel ne doit entrer dans le dépôt : les valeurs de
+`tests/fake.py` et de la documentation sont factices.
