@@ -180,6 +180,44 @@ Le port peut aussi être imposé : `Dongle.open("/dev/ttyACM0")`.
 > qu'une trame est partie, jamais qu'un volet a bougé, et aucune position n'est lisible.
 > Toute notion d'état ou de position relève de la couche appelante.
 
+### Essayer sans écrire de code
+
+Le dépôt fournit un script de démonstration à sa racine :
+
+```bash
+uv run demo.py                           # identification et table des canaux
+uv run demo.py --port /dev/ttyACM0       # forcer le port série
+uv run demo.py --channel 2 --close       # descente, avec confirmation
+uv run demo.py --channel 2 --stop --yes  # stop, sans confirmation
+```
+
+Sans argument, il **n'émet rien** : il se contente d'identifier le dongle et de lister les
+canaux utilisés. C'est le moyen le plus rapide de vérifier que votre dongle est reconnu.
+
+Les actions (`--open`, `--close`, `--stop`, `--favourite`) doivent être demandées explicitement
+et déclenchent une confirmation, puisqu'elles déplacent un volet réel. Les clés ne sont jamais
+affichées.
+
+Exemple de sortie (valeurs factices) :
+
+```
+Looking for a dongle...
+  /dev/ttyACM0  PROFALUX / KEELOQ USB Device
+
+Dongle
+  hardware version : 0
+  software version : Rev10
+  frame repeat     : T0=25,T1=15,T2=70,T3=70
+  read protection  : no
+  transmit power   : 14
+
+Channels: 50 total, 2 used
+  channel  0  serial 000AAAA1  sync 43
+  channel  1  serial 000AAAA2  sync 14
+
+Read-only run: nothing was transmitted.
+```
+
 ## Développement
 
 ```bash
