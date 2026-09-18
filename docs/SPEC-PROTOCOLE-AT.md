@@ -1,6 +1,6 @@
 # Protocole AT du dongle Neosol 868 MHz — spécifications
 
-Document de référence décrivant le protocole série du dongle USB `DONGLE868-1A`, destiné à
+Document de référence décrivant le protocole série du dongle USB `MAI-DONGLE868-1A`, destiné à
 servir de base à l'implémentation de `pyneosol`.
 
 > ⚠️ Protocole reconstitué par **rétro-ingénierie**, par observation du dialogue série avec un
@@ -35,7 +35,7 @@ Chaque élément de ce document porte l'une des mentions suivantes :
 
 | Mention | Signification |
 |---|---|
-| ✅ **Validé** | Observé et reproduit sur un dongle `DONGLE868-1A` (HW `0`, SW `Rev10`) |
+| ✅ **Validé** | Observé et reproduit sur un dongle `MAI-DONGLE868-1A` (HW `0`, SW `Rev10`) |
 | 🟡 **Partiel** | Comportement observé mais périmètre ou paramètres incomplets |
 | ❓ **Supposé** | Déduit sans vérification directe — à confirmer |
 
