@@ -2,7 +2,7 @@
 
 Python library for 868 MHz roller shutter USB dongles speaking the `PFX` AT
 serial protocol. Compatible with Profalux Neosol roller shutters and the
-`DONGLE868-1A` (commercial ref. MAI-DONGLE868CH-NC). Fully local, no box, no cloud.
+`MAI-DONGLE868-1A`. Fully local, no box, no cloud.
 
 > Bibliothèque Python pour les dongles USB 868 MHz utilisant le protocole série AT
 > « PFX ». **Compatible avec** les volets roulants Profalux Neosol — sans la box
@@ -74,17 +74,18 @@ roulants Profalux Neosol. Elle n'est ni fournie, ni distribuée, ni approuvée p
 
 | | |
 |---|---|
-| **Modèle validé** | `DONGLE868-1A` |
+| **Modèle validé** | `MAI-DONGLE868-1A` |
 | **Identification interne** | `PFX KEELOQ` |
 | **Hardware Version** | `0` |
 | **Software Version** | `Rev10` |
 | **Interface** | USB CDC-ACM (port série virtuel) |
 | **Débit** | 115200 bauds |
 
-> ℹ️ **`DONGLE868-1A` est à ce jour la seule référence sur laquelle le protocole a été
-> validé.** D'autres références existent (le `MAI-DONGLE868CH-NC` est notamment cité dans les
-> catalogues) mais n'ont **pas** été testées. Le comportement sur une autre référence, une
-> autre version matérielle ou une autre révision logicielle n'est ni vérifié ni garanti.
+> ℹ️ **`MAI-DONGLE868-1A` est la seule référence sur laquelle le protocole a été validé**, et
+> la seule dont dispose l'auteur. L'existence et le comportement d'éventuelles autres
+> références ne sont pas connus : rien n'est vérifié ni garanti sur une autre référence, une
+> autre version matérielle ou une autre révision logicielle. Les retours sur d'autres modèles
+> sont les bienvenus.
 
 ### Identifier votre dongle
 
