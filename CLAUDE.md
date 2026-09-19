@@ -50,6 +50,10 @@ Toujours passer par `uv`. Python ≥ 3.13, CI sur 3.13 et 3.14.
 - `uv.lock` porte la version du paquet : le workflow de release le resynchronise sur la branche
   de la PR de release. Ne pas l'éditer à la main, lancer `uv lock` après tout changement de
   version ou de dépendance.
+- La fusion d'une PR de release publie le paquet sur **PyPI** via le *Trusted Publishing*
+  (OIDC) : aucun token d'API n'est stocké, l'autorisation vit dans le *publisher* déclaré côté
+  PyPI (dépôt `bbayszczak/pyneosol`, workflow `release.yml`). Renommer ce fichier ou le dépôt
+  casse la publication tant que le *publisher* n'est pas mis à jour.
 
 ## Principes de conception
 
