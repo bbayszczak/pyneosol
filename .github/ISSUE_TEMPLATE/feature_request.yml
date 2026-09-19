@@ -1,0 +1,28 @@
+name: Proposition
+description: Une évolution du pilote
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        `pyneosol` est un pilote bas niveau **sans état** : position estimée, calibration et
+        persistance appartiennent à la couche appelante. Voir [CONTRIBUTING.md](../blob/main/CONTRIBUTING.md).
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Besoin
+      description: Le problème concret que cela résout, pas la solution envisagée.
+    validations:
+      required: true
+  - type: textarea
+    id: proposition
+    attributes:
+      label: Proposition
+      description: Ce que vous imaginez, et l'état de validation du protocole s'il est concerné.
+  - type: checkboxes
+    id: perimetre
+    attributes:
+      label: Périmètre
+      options:
+        - label: Cette proposition ne fait pas remonter d'état (position, calibration) dans le pilote.
+          required: true

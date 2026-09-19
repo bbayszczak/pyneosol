@@ -1,0 +1,12 @@
+# Les actions sont épinglées sur des SHA complets dans .github/workflows (protection contre
+# le redéplacement d'un tag). Dependabot est donc indispensable : sans lui, ces SHA figés ne
+# recevraient jamais les correctifs de sécurité amont.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      # Conventional Commits : `ci` n'entraîne pas de release (cf. release-please).
+      prefix: ci
