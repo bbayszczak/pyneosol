@@ -67,6 +67,22 @@ ces conditions.
 
 ---
 
+## Démarrage rapide
+
+Avec [`uv`](https://docs.astral.sh/uv/) et le dongle branché :
+
+```bash
+git clone https://github.com/bbayszczak/pyneosol
+cd pyneosol
+uv run demo.py
+```
+
+`uv` crée l'environnement et installe les dépendances tout seul. Sans argument, `demo.py`
+**n'émet rien** : il identifie le dongle et liste les canaux utilisés — de quoi vérifier en
+quelques secondes que votre matériel est reconnu.
+
+---
+
 ## Matériel
 
 Cette bibliothèque est **compatible avec** le dongle USB 868 MHz distribué pour les volets
