@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyneosol"
-version = "0.2.0"
+version = "0.3.0"
 description = "Python library for 868 MHz roller shutter USB dongles speaking the PFX AT serial protocol. Compatible with Profalux Neosol roller shutters and the MAI-DONGLE868-1A."
 readme = "README.md"
 license = "MIT"
