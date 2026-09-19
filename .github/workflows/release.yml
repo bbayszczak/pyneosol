@@ -58,15 +58,19 @@ jobs:
           git commit -m "chore: sync uv.lock with the release version" uv.lock
           git push
 
-  # GitHub Packages n'héberge pas de paquets Python : les distributions sont donc attachées
-  # à la GitHub Release, d'où elles restent installables (`pip install <url du .whl>`).
+  # Les distributions partent vers PyPI et sont aussi attachées à la GitHub Release, d'où
+  # elles restent installables hors index (`pip install <url du .whl>`).
   publish:
-    name: Build and attach distributions
+    name: Publish distributions
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # Trusted Publishing : PyPI authentifie le workflow sur le jeton OIDC que GitHub lui
+      # délivre, il n'y a donc aucun token d'API à stocker en secret. Sans cette permission,
+      # le jeton n'est pas émis et la publication échoue.
+      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
@@ -79,3 +83,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
         run: gh release upload "$TAG_NAME" dist/*
+      # Publie tout ce que `uv build` a déposé dans dist/. L'action refuse de réécrire une
+      # version déjà présente sur PyPI : un rejeu du workflow échoue au lieu de corrompre.
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
