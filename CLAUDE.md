@@ -47,6 +47,9 @@ Toujours passer par `uv`. Python ≥ 3.13, CI sur 3.13 et 3.14.
   redéplacé sur un autre commit). Dependabot les met à jour ; ne jamais revenir à un tag mobile.
 - Dépôt public : `CONTRIBUTING.md` et `SECURITY.md` font foi côté contributeurs, les garder
   cohérents avec ce fichier — notamment la liste des interdits ci-dessous.
+- `uv.lock` porte la version du paquet : le workflow de release le resynchronise sur la branche
+  de la PR de release. Ne pas l'éditer à la main, lancer `uv lock` après tout changement de
+  version ou de dépendance.
 
 ## Principes de conception
 

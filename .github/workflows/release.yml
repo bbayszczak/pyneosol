@@ -30,6 +30,34 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+      # release-please bump la version dans pyproject.toml mais ignore uv.lock, qui porte lui
+      # aussi la version du paquet. Sans resynchronisation, le lockfile est périmé dès la
+      # release et le premier `uv run` venu le réécrit. On corrige sur la branche de la PR de
+      # release, avant sa fusion, pour que main ne reçoive jamais de lockfile désaligné.
+      # `uv lock` relit pyproject.toml : la règle survit à tout changement de schéma de version.
+      - name: Check out the release pull request branch
+        if: steps.release.outputs.pr
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ fromJson(steps.release.outputs.pr).headBranchName }}
+
+      - name: Set up uv
+        if: steps.release.outputs.pr
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+
+      - name: Sync uv.lock with the bumped version
+        if: steps.release.outputs.pr
+        run: |
+          uv lock
+          if git diff --quiet uv.lock; then
+            echo "uv.lock already in sync"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: sync uv.lock with the release version" uv.lock
+          git push
+
   # GitHub Packages n'héberge pas de paquets Python : les distributions sont donc attachées
   # à la GitHub Release, d'où elles restent installables (`pip install <url du .whl>`).
   publish:
