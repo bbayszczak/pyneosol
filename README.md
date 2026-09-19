@@ -226,12 +226,17 @@ uv run ruff format .     # formatage
 uv run pytest            # tests — aucun matériel requis, le dongle est simulé
 ```
 
+Périmètre, conventions et interdits : [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ---
 
 ## Sécurité
 
 Le dongle stocke les **clés KeeLoq** de vos volets, lisibles en clair via la commande
 `AT$C?`. Quiconque les possède peut commander vos volets.
+
+Pour signaler une faille, utilisez le [signalement privé](SECURITY.md) — jamais une issue
+publique.
 
 **Ne publiez jamais le contenu réel de votre table de canaux** — ni dans une issue, ni dans un
 rapport de bug, ni dans un export de configuration. Masquez systématiquement les clés et les

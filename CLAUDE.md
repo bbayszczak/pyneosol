@@ -43,6 +43,10 @@ Toujours passer par `uv`. Python ≥ 3.13, CI sur 3.13 et 3.14.
 - Documentation en français, code et docstrings en anglais.
 - Le linter est strict (docstrings et annotations obligatoires dans `src/`) ; les tests en sont
   dispensés via `per-file-ignores`.
+- Les actions GitHub sont **épinglées sur des SHA complets** (un tag comme `@v4` peut être
+  redéplacé sur un autre commit). Dependabot les met à jour ; ne jamais revenir à un tag mobile.
+- Dépôt public : `CONTRIBUTING.md` et `SECURITY.md` font foi côté contributeurs, les garder
+  cohérents avec ce fichier — notamment la liste des interdits ci-dessous.
 
 ## Principes de conception
 
