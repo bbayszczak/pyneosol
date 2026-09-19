@@ -1,20 +1,29 @@
 # pyneosol
 
-Python library for 868 MHz roller shutter USB dongles speaking the `PFX` AT
-serial protocol. Compatible with Profalux Neosol roller shutters and the
-`MAI-DONGLE868-1A`. Fully local, no box, no cloud.
+[![CI](https://img.shields.io/github/actions/workflow/status/bbayszczak/pyneosol/ci.yml?branch=main&label=CI)](https://github.com/bbayszczak/pyneosol/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/github/v/release/bbayszczak/pyneosol?label=version)](https://github.com/bbayszczak/pyneosol/releases/latest)
+[![Python](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/downloads/)
+[![Licence](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
 
-> Bibliothèque Python pour les dongles USB 868 MHz utilisant le protocole série AT
-> « PFX ». **Compatible avec** les volets roulants Profalux Neosol — sans la box
-> Calyps'HOME ni le cloud.
+Bibliothèque Python pour les dongles USB 868 MHz utilisant le protocole série AT « PFX ».
+**Compatible avec** les volets roulants Profalux Neosol et le `MAI-DONGLE868-1A`.
+Entièrement locale : ni box Calyps'HOME, ni cloud.
 
----
+> ⚠️ **PROJET INDÉPENDANT, SANS AUCUNE AFFILIATION**
+>
+> `pyneosol` n'est **en aucun cas** affilié, soutenu, approuvé ou validé par Profalux, Stella
+> Advanced Technology, ou l'une quelconque de leurs filiales, marques, sociétés apparentées,
+> sous-traitants ou partenaires. *Profalux*, *Stella Advanced Technology*, *Neosol* et
+> *Calyps'HOME* sont des marques de leurs titulaires respectifs, citées uniquement pour décrire
+> le matériel avec lequel cette bibliothèque communique, à des fins d'interopérabilité.
+>
+> 👉 **Lisez impérativement l'avertissement complet ci-dessous avant toute utilisation.** Il
+> couvre le **risque matériel** — certaines commandes du dongle sont destructives et peuvent
+> effacer tous vos appairages —, l'**absence totale de garantie** et les conditions d'usage.
+> En utilisant cette bibliothèque, vous reconnaissez les avoir lues et acceptées.
 
-## ⚠️ Avertissement / Disclaimer
-
-> **Unofficial project.** This library is an independent work. It is not affiliated
-> with, endorsed, sponsored or approved by Profalux, Stella Advanced Technology, or
-> any of their affiliates. All trademarks belong to their respective owners.
+<details>
+<summary><strong>⚠️ Avertissement complet — à lire avant toute utilisation</strong></summary>
 
 **Ce projet est totalement indépendant et n'est en aucun cas affilié, soutenu, approuvé
 ou validé par Profalux, Stella Advanced Technology, ou l'une quelconque de leurs
@@ -64,6 +73,37 @@ d'en affecter la garantie. Vérifiez-le avant de l'utiliser.
 
 En utilisant cette bibliothèque, vous reconnaissez avoir lu et accepté l'ensemble de
 ces conditions.
+
+</details>
+
+---
+
+## Sommaire
+
+- [Démarrage rapide](#démarrage-rapide)
+- [Matériel](#matériel)
+- [État du projet](#état-du-projet)
+- [Installation](#installation)
+- [Utilisation](#utilisation)
+- [Développement](#développement)
+- [Contribuer](#contribuer)
+- [Sécurité](#sécurité)
+
+---
+
+## Démarrage rapide
+
+Avec [`uv`](https://docs.astral.sh/uv/) et le dongle branché :
+
+```bash
+git clone https://github.com/bbayszczak/pyneosol
+cd pyneosol
+uv run demo.py
+```
+
+`uv` crée l'environnement et installe les dépendances tout seul. Sans argument, `demo.py`
+**n'émet rien** : il identifie le dongle et liste les canaux utilisés — de quoi vérifier en
+quelques secondes que votre matériel est reconnu.
 
 ---
 
@@ -150,6 +190,9 @@ Version` et `Software Version` sont les deux valeurs à communiquer en cas de pr
 🚧 **Alpha.** Le pilotage fonctionne et le protocole est documenté dans
 [`docs/SPEC-PROTOCOLE-AT.md`](docs/SPEC-PROTOCOLE-AT.md). L'API peut encore changer.
 
+Les changements de chaque version sont consignés dans le [CHANGELOG](CHANGELOG.md), tenu à jour
+automatiquement à partir des messages de commit.
+
 ---
 
 ## Installation
@@ -226,7 +269,19 @@ uv run ruff format .     # formatage
 uv run pytest            # tests — aucun matériel requis, le dongle est simulé
 ```
 
-Périmètre, conventions et interdits : [CONTRIBUTING.md](CONTRIBUTING.md).
+---
+
+## Contribuer
+
+Les retours sont bienvenus, en particulier sur **d'autres références de dongle** que le
+`MAI-DONGLE868-1A`, seule référence validée à ce jour.
+
+- **Signaler un bug ou proposer une évolution** —
+  [ouvrir une issue](https://github.com/bbayszczak/pyneosol/issues/new/choose), en précisant la
+  référence de votre dongle et ses versions matérielle et logicielle
+  (voir [Identifier votre dongle](#identifier-votre-dongle)).
+- **Proposer du code** — périmètre, conventions et interdits sont décrits dans
+  [CONTRIBUTING.md](CONTRIBUTING.md), à lire avant d'ouvrir une pull request.
 
 ---
 
