@@ -1,0 +1,51 @@
+name: Rapport de bug
+description: Un comportement inattendu du pilote ou du dongle
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **Masquez vos clés KeeLoq et numéros de série réels** dans tout log ou sortie
+        collé ici. Quiconque les possède peut commander vos volets.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Ce qui se passe, et ce que vous attendiez.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Les étapes, et le code minimal qui déclenche le problème.
+    validations:
+      required: true
+  - type: input
+    id: dongle
+    attributes:
+      label: Dongle
+      description: Référence, version matérielle et logicielle (sortie de `AT?`).
+      placeholder: MAI-DONGLE868-1A, HW 0, SW Rev10
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environnement
+      placeholder: macOS 15.4, Python 3.13, pyneosol 0.2.0
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Le dialogue AT si vous l'avez. Rendu en bloc de code, pas de formatage requis.
+      render: text
+  - type: checkboxes
+    id: hygiene
+    attributes:
+      label: Vérification
+      options:
+        - label: J'ai masqué toutes les clés et tous les numéros de série réels.
+          required: true
