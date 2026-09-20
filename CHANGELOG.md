@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.2](https://github.com/bbayszczak/pyneosol/compare/v0.4.1...v0.4.2) (2026-09-20)
+
+
+### Bug Fixes
+
+* **dongle:** redact secrets in outgoing commands too ([#16](https://github.com/bbayszczak/pyneosol/issues/16)) ([cccb56f](https://github.com/bbayszczak/pyneosol/commit/cccb56f8f8e290f2e722b1d6060502fe66669283))
+* **dongle:** stop reporting an empty AT$CP? answer as a timeout ([#13](https://github.com/bbayszczak/pyneosol/issues/13)) ([8f3abeb](https://github.com/bbayszczak/pyneosol/commit/8f3abebcd29534a570c5909f63f214553ac74763))
+
+
+### Documentation
+
+* **readme:** install from PyPI instead of the git repository ([#23](https://github.com/bbayszczak/pyneosol/issues/23)) ([73b6be8](https://github.com/bbayszczak/pyneosol/commit/73b6be807df7a08b8d2ef54b6ceed4d2afa7f5a0))
+
 ## [0.4.1](https://github.com/bbayszczak/pyneosol/compare/v0.4.0...v0.4.1) (2026-09-20)
 
 
