@@ -13,6 +13,8 @@ Example:
 
 from __future__ import annotations
 
+import logging
+
 from .discovery import USB_PID, USB_VID, PortInfo, find_ports
 from .dongle import Dongle
 from .exceptions import (
@@ -28,6 +30,11 @@ from .exceptions import (
 )
 from .models import Action, Channel, DongleInfo
 from .transport import SerialTransport, Transport
+
+# A library must not configure logging: the application owns the handlers and the levels.
+# This only keeps the "no handler could be found" warning away when nothing is configured at
+# all, as recommended for libraries. Never add a handler, a level or a formatter here.
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 __version__ = "0.3.0"  # x-release-please-version
 

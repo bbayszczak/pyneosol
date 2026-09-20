@@ -34,10 +34,16 @@ _CHANNEL_RE: Final = re.compile(
     r"\s*(?P<sync>[0-9A-Fa-f]+)\s*,\s*(?P<key>[0-9A-Fa-f]+)\s*$"
 )
 
+#: Label carrying the unit's own serial number in the ``AT&V`` response.
+_SERIAL_LABEL: Final = "S/N"
+
+#: Stands in for every secret in a line meant to be logged, like the models' ``__repr__``.
+_MASK: Final = "***"
+
 _INFO_FIELDS: Final = {
     "Hardware Version": "hardware_version",
     "Software Version": "software_version",
-    "S/N": "serial_number",
+    _SERIAL_LABEL: "serial_number",
     "Frame Repeat Nb": "frame_repeat",
 }
 
@@ -80,6 +86,32 @@ def find_terminator(lines: list[str]) -> tuple[str | None, str] | None:
 def payload(lines: list[str]) -> list[str]:
     """Return the informative lines of a response, without its terminator."""
     return [line for line in lines if is_terminator(line) is None]
+
+
+def redact(lines: list[str]) -> list[str]:
+    """Return ``lines`` with every secret masked, so a response can safely be logged.
+
+    Two things a response carries must never reach a log file: the KeeLoq keys of the channel
+    table, which command the shutters, and the serial numbers identifying the user's own
+    hardware — logs routinely end up pasted into bug reports. Everything else is left alone,
+    since the channel index, the sync counter and the identification fields are what makes a
+    protocol trace worth reading.
+    """
+    return [_redact_line(line) for line in lines]
+
+
+def _redact_line(line: str) -> str:
+    """Mask the secrets of a single response line, leaving anything else untouched."""
+    if (match := _CHANNEL_RE.match(line)) is not None:
+        # Masking in place, right to left so the offsets stay valid, keeps the original
+        # spacing — including the space before the key, a quirk worth still seeing in a trace.
+        for start, end in sorted([match.span("serial"), match.span("key")], reverse=True):
+            line = f"{line[:start]}{_MASK}{line[end:]}"
+        return line
+    label, separator, _ = line.partition(":")
+    if separator and label.strip() == _SERIAL_LABEL:
+        return f"{label}:{_MASK}"
+    return line
 
 
 def parse_channel_line(line: str) -> Channel | None:

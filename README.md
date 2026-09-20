@@ -85,6 +85,7 @@ ces conditions.
 - [État du projet](#état-du-projet)
 - [Installation](#installation)
 - [Utilisation](#utilisation)
+- [Logging](#logging)
 - [Développement](#développement)
 - [Contribuer](#contribuer)
 - [Sécurité](#sécurité)
@@ -260,6 +261,50 @@ Channels: 50 total, 2 used
 
 Read-only run: nothing was transmitted.
 ```
+
+## Logging
+
+La bibliothèque utilise le module `logging` standard et **ne configure rien** : ni handler, ni
+niveau, ni format. C'est l'application hôte qui décide. Chaque module a son logger, nommé
+d'après le paquet — `pyneosol.dongle`, `pyneosol.discovery` — ce qui permet de filtrer au
+paquet entier comme au module.
+
+Tout est en `DEBUG` : le dialogue AT (commande émise, réponse, durée) et la détection du port.
+Les erreurs ne sont pas loguées, elles sont **levées** ; c'est à l'appelant de décider ce qu'il
+en fait.
+
+Dans Home Assistant, via `configuration.yaml` :
+
+```yaml
+logger:
+  logs:
+    pyneosol: debug          # tout
+    pyneosol.dongle: debug   # seulement le dialogue AT
+```
+
+En script autonome :
+
+```python
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+```
+
+Exemple de trace (valeurs factices) :
+
+```
+DEBUG pyneosol.discovery: 1 of 4 serial ports match 10C4:0003: ['/dev/ttyACM0']
+DEBUG pyneosol.dongle: opening /dev/ttyACM0
+DEBUG pyneosol.dongle: > AT$C?
+DEBUG pyneosol.dongle: < ['0,***,0029, ***', '1,***,0009, ***', 'AT$C:OK'] (0.212s)
+DEBUG pyneosol.dongle: > AT$SF=0,1
+DEBUG pyneosol.dongle: < ['AT$SF:OK'] (0.004s)
+```
+
+> ✅ **Aucun secret n'entre dans les logs.** Toute réponse du dongle est masquée avant d'être
+> loguée : les clés KeeLoq et les numéros de série deviennent `***`, tandis que l'index du
+> canal et son compteur `sync` restent lisibles. Une trace `DEBUG` peut donc être jointe telle
+> quelle à un rapport de bug.
 
 ## Développement
 

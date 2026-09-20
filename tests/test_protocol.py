@@ -91,3 +91,26 @@ def test_parse_info_requires_the_identification_marker():
 
 def test_encode_appends_the_line_terminator():
     assert protocol.encode("AT&V") == b"AT&V\r\n"
+
+
+def test_redact_masks_the_key_and_the_serial_of_a_channel_line():
+    assert protocol.redact(["2,000AAAA3,0029, 00112233445566CC"]) == ["2,***,0029, ***"]
+
+
+def test_redact_masks_the_serial_number_of_the_identification():
+    assert protocol.redact(["S/N: 00001234"]) == ["S/N:***"]
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "PFX KEELOQ",
+        "Software Version: Rev10",
+        "Frame Repeat Nb : T0=25,T1=15,T2=70,T3=70",
+        "Read Protection Active : 0",
+        "AT$C:OK",
+        "14",
+    ],
+)
+def test_redact_leaves_everything_else_readable(line):
+    assert protocol.redact([line]) == [line]

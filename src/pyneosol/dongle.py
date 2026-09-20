@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from types import TracebackType
@@ -19,6 +20,10 @@ from .exceptions import (
 )
 from .models import Action, Channel, DongleInfo
 from .transport import SerialTransport, Transport
+
+#: Logs go to the host's handlers, never to ours: an integration such as Home Assistant
+#: owns the logging configuration and filters on this very name (``pyneosol.dongle``).
+_LOGGER = logging.getLogger(__name__)
 
 #: Enough for a single-line answer.
 DEFAULT_TIMEOUT: Final = 3.0
@@ -74,6 +79,7 @@ class Dongle:
                 raise DongleNotFoundError("no serial port matching the dongle USB identifiers")
             port = ports[0].device
 
+        _LOGGER.debug("opening %s", port)
         dongle = cls(SerialTransport(port))
         if startup_delay > 0:
             time.sleep(startup_delay)
@@ -97,16 +103,28 @@ class Dongle:
 
         """
         with self._lock:
+            _LOGGER.debug("> %s", command)
             self._transport.reset_input()
             self._transport.write(protocol.encode(command))
 
-            deadline = time.monotonic() + timeout
+            started = time.monotonic()
+            deadline = started + timeout
             raw = ""
             while True:
                 if chunk := self._transport.read_available():
                     raw += chunk.decode("utf-8", "replace")
                     lines = protocol.split_lines(raw)
                     if (terminator := protocol.find_terminator(lines)) is not None:
+                        # Every response the driver receives funnels through here, so masking
+                        # at this single point is what keeps keys and serial numbers out of
+                        # the logs for good. The guard skips that pass — fifty lines for
+                        # AT$C? — when debug logging is off.
+                        if _LOGGER.isEnabledFor(logging.DEBUG):
+                            _LOGGER.debug(
+                                "< %s (%.3fs)",
+                                protocol.redact(lines),
+                                time.monotonic() - started,
+                            )
                         _, status = terminator
                         if status == "KO":
                             # A bare KO means the verb itself is unknown, a prefixed one that
