@@ -214,8 +214,16 @@ automatiquement à partir des messages de commit.
 
 ## Installation
 
+Le paquet est publié sur [PyPI](https://pypi.org/project/pyneosol/) :
+
 ```bash
-pip install git+https://github.com/bbayszczak/pyneosol
+pip install pyneosol
+```
+
+Avec [`uv`](https://docs.astral.sh/uv/) :
+
+```bash
+uv add pyneosol
 ```
 
 ## Utilisation
