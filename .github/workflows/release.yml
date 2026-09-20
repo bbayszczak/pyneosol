@@ -64,7 +64,12 @@ jobs:
         if: steps.release.outputs.pr
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
-          BRANCH: ${{ fromJson(steps.release.outputs.pr).headBranchName }}
+          # Le court-circuit n'est pas décoratif : les expressions d'un bloc `env:` de step
+          # sont évaluées avant son `if:`, à la différence de celles d'un `with:`. Sur les runs
+          # qui publient une release au lieu d'ouvrir une PR, `steps.release.outputs.pr` est
+          # vide ; sans garde, `fromJson` recevrait la chaîne vide et ferait échouer le step
+          # alors même qu'il doit être sauté.
+          BRANCH: ${{ steps.release.outputs.pr && fromJson(steps.release.outputs.pr).headBranchName || '' }}
         run: |
           uv lock
           if git diff --quiet uv.lock; then
