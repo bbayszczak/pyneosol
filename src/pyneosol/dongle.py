@@ -189,7 +189,7 @@ class Dongle:
         """Read the transmit power (``AT$CP?``).
 
         Raises:
-            ProtocolError: the response carried no value.
+            ProtocolError: the response carried no value, or one that is not a number.
 
         """
         lines = self.execute("AT$CP?")
@@ -197,7 +197,17 @@ class Dongle:
             # Not a timeout: execute() returned, so the terminator did arrive and only the
             # value is missing.
             raise ProtocolError("no value in the response to AT$CP?")
-        return int(lines[0])
+        try:
+            return int(lines[0])
+        except ValueError as error:
+            # Everything this library raises must stay under NeosolError: a caller guarding
+            # with `except NeosolError` would never catch a bare ValueError. The offending
+            # line goes through redact() first — an exception message is quoted in bug
+            # reports just like a log line, and whatever desynchronised the dialogue enough
+            # to land here could just as well have put a channel table row in its place.
+            raise ProtocolError(
+                f"unexpected transmit power {protocol.redact([lines[0]])[0]!r}"
+            ) from error
 
     # ------------------------------------------------------------------ transmitting
 

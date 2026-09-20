@@ -113,6 +113,22 @@ quelques secondes que votre matériel est reconnu.
 Cette bibliothèque est **compatible avec** le dongle USB 868 MHz distribué pour les volets
 roulants Profalux Neosol. Elle n'est ni fournie, ni distribuée, ni approuvée par le fabricant.
 
+Elle **fonctionne avec le dongle photographié ci-dessous**, le `MAI-DONGLE868-1A`, sur lequel
+tout le protocole a été validé.
+
+<!-- Photos du dongle de l'auteur : métadonnées supprimées et numéro de série masqué à la
+     source. Toute image ajoutée ici doit conserver ces deux propriétés. -->
+<p align="center">
+  <img src="docs/images/dongle-mai-dongle868-1a-face.jpg"
+       alt="Dongle USB Neosol vu de face" width="190">
+  &nbsp;&nbsp;&nbsp;
+  <img src="docs/images/dongle-mai-dongle868-1a-etiquette.jpg"
+       alt="Étiquette du dongle : Dongle Neosol, MAI-DONGLE868-1A, Lot 25/22, 5V 0.15 W"
+       width="190">
+  <br>
+  <em>Le dongle validé, de face et côté étiquette. Le numéro de série est masqué.</em>
+</p>
+
 | | |
 |---|---|
 | **Modèle validé** | `MAI-DONGLE868-1A` |
