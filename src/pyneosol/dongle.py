@@ -14,6 +14,7 @@ from .exceptions import (
     CommandRejectedError,
     DongleNotFoundError,
     NotADongleError,
+    ProtocolError,
     ResponseTimeoutError,
     UnknownChannelError,
     UnknownCommandError,
@@ -185,11 +186,26 @@ class Dongle:
         return [channel for channel in self.channels() if channel.is_used]
 
     def transmit_power(self) -> int:
-        """Read the transmit power (``AT$CP?``)."""
+        """Read the transmit power (``AT$CP?``).
+
+        Raises:
+            ProtocolError: the device answered something that is not a number.
+
+        """
         lines = self.execute("AT$CP?")
         if not lines:
             raise ResponseTimeoutError("empty response to AT$CP?")
-        return int(lines[0])
+        try:
+            return int(lines[0])
+        except ValueError as error:
+            # Everything this library raises must stay under NeosolError: a caller guarding
+            # with `except NeosolError` would never catch a bare ValueError. The offending
+            # line goes through redact() first — an exception message is quoted in bug
+            # reports just like a log line, and whatever desynchronised the dialogue enough
+            # to land here could just as well have put a channel table row in its place.
+            raise ProtocolError(
+                f"unexpected transmit power {protocol.redact([lines[0]])[0]!r}"
+            ) from error
 
     # ------------------------------------------------------------------ transmitting
 
