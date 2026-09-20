@@ -233,6 +233,7 @@ uv run demo.py                           # identification et table des canaux
 uv run demo.py --port /dev/ttyACM0       # forcer le port série
 uv run demo.py --channel 2 --close       # descente, avec confirmation
 uv run demo.py --channel 2 --stop --yes  # stop, sans confirmation
+uv run demo.py --debug                   # afficher le dialogue AT (voir Logging)
 ```
 
 Sans argument, il **n'émet rien** : il se contente d'identifier le dongle et de lister les

@@ -10,12 +10,14 @@ Usage:
     uv run demo.py --port /dev/ttyACM0      # force the serial port
     uv run demo.py --channel 2 --close      # close, asks for confirmation
     uv run demo.py --channel 2 --stop --yes # stop, without confirmation
+    uv run demo.py --debug                  # print the AT dialogue as it happens
 
 """
 
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 
 from pyneosol import Dongle, NeosolError, find_ports
@@ -31,6 +33,9 @@ def parse_args() -> argparse.Namespace:
     for action in ACTIONS:
         parser.add_argument(f"--{action}", action="store_true", help=f"send {action}")
     parser.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+    parser.add_argument(
+        "--debug", action="store_true", help="print the AT dialogue (secrets masked)"
+    )
     return parser.parse_args()
 
 
@@ -81,6 +86,11 @@ def main() -> int:
     if requested and args.channel is None:
         print("--channel is required to send an action", file=sys.stderr)
         return 2
+
+    if args.debug:
+        # The library configures nothing on its own, so whoever runs it decides: here, us.
+        # Keys and serial numbers are already masked by the driver before reaching a record.
+        logging.basicConfig(level=logging.DEBUG, format="%(levelname)s %(name)s: %(message)s")
 
     print("Looking for a dongle...")
     show_ports()
