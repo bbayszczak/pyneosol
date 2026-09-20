@@ -157,3 +157,20 @@ def test_debug_logging_never_leaks_a_key_or_a_serial_number(dongle, fake, caplog
     for index in range(CHANNEL_COUNT):
         assert fake.key_of(index) not in logged
         assert fake.serial_of(index) not in logged
+
+
+def test_a_raw_command_carrying_a_key_leaks_neither_to_the_logs_nor_to_the_error(dongle, caplog):
+    # execute() takes raw commands, so the outgoing direction needs the same guarantee as the
+    # incoming one: AT$C= carries the key in the command itself.
+    key, serial = "00112233445566AA", "000AAAA1"
+    with (
+        caplog.at_level(logging.DEBUG, logger="pyneosol"),
+        pytest.raises(CommandRejectedError) as raised,
+    ):
+        dongle.execute(f"AT$C=0,{serial},0029,{key}")
+
+    assert "AT$C" in caplog.text  # the dialogue is still traced
+    for secret in (key, serial):
+        assert secret not in caplog.text
+        assert secret not in str(raised.value)
+        assert secret not in raised.value.command
