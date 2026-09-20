@@ -67,6 +67,15 @@ Toujours passer par `uv`. Python ≥ 3.13, CI sur 3.13 et 3.14.
   code tiers (hatchling et ses dépendances) et ne doit jamais tourner dans le job qui porte
   `id-token: write`, sans quoi une dépendance de build compromise pourrait publier sur PyPI.
   Ne pas refusionner ces deux jobs.
+- `release-please` tourne sous l'identité d'une **GitHub App** dédiée, jamais sous le
+  `GITHUB_TOKEN` : celui-ci ne peut pas ouvrir de PR tant que le réglage « Allow GitHub Actions
+  to create and approve pull requests » du dépôt est décoché, et ses écritures ne déclenchent
+  aucun workflow — la PR de release n'obtiendrait donc jamais les checks que le ruleset de
+  `main` exige et resterait infusionnable. L'App est installée sur le seul dépôt, avec
+  `Contents` et `Pull requests` en écriture ; ses identifiants vivent dans les secrets
+  `RELEASE_PLEASE_APP_ID` et `RELEASE_PLEASE_PRIVATE_KEY`. Le `checkout` de la branche de
+  release doit porter le **même** token : sinon le commit de `uv.lock` repart sous le
+  `GITHUB_TOKEN` et laisse la PR sans check sur son dernier commit.
 
 ## Principes de conception
 
