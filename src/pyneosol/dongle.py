@@ -189,12 +189,14 @@ class Dongle:
         """Read the transmit power (``AT$CP?``).
 
         Raises:
-            ProtocolError: the device answered something that is not a number.
+            ProtocolError: the response carried no value, or one that is not a number.
 
         """
         lines = self.execute("AT$CP?")
         if not lines:
-            raise ResponseTimeoutError("empty response to AT$CP?")
+            # Not a timeout: execute() returned, so the terminator did arrive and only the
+            # value is missing.
+            raise ProtocolError("no value in the response to AT$CP?")
         try:
             return int(lines[0])
         except ValueError as error:
