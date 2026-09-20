@@ -114,3 +114,21 @@ def test_redact_masks_the_serial_number_of_the_identification():
 )
 def test_redact_leaves_everything_else_readable(line):
     assert protocol.redact([line]) == [line]
+
+
+def test_redact_command_masks_the_identity_written_by_at_c():
+    assert protocol.redact_command("AT$C=0,000AAAA1,0029,00112233445566AA") == "AT$C=0,***,0029,***"
+
+
+def test_redact_command_masks_the_serial_written_by_at_sn():
+    assert protocol.redact_command("AT$SN=00001234") == "AT$SN=***"
+
+
+@pytest.mark.parametrize(
+    "command",
+    ["AT", "AT&V", "AT$C?", "AT$CP?", "AT$SF=0,1", "AT$CP=14", "AT$TR=25,15,70,70"],
+)
+def test_redact_command_leaves_harmless_commands_readable(command):
+    # Masking too much would make a trace useless: only the two commands that carry a secret
+    # are touched, and AT$C? must not be mistaken for AT$C=.
+    assert protocol.redact_command(command) == command

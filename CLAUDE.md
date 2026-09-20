@@ -113,7 +113,16 @@ Cela vaut aussi pour les **images** de `docs/images/` : toute photo de matériel
 dépôt numéro de série masqué et métadonnées supprimées (`exiftool -all= --icc_profile:all`),
 sans quoi la position GPS de la prise de vue et le numéro de série partent avec le fichier.
 
-Côté logs, `Dongle.execute()` est le point de passage unique de toute réponse du dongle : elle
-y traverse `protocol.redact()`, qui masque les clés et les numéros de série. Ne jamais loguer
-de ligne brute ailleurs, ni un `Channel`/`DongleInfo` autrement que par son `__repr__`. Le test
-`test_debug_logging_never_leaks_a_key_or_a_serial_number` garde la propriété.
+Côté logs, `Dongle.execute()` est le point de passage unique du dialogue, **dans les deux
+sens** : les réponses traversent `protocol.redact()`, les commandes `protocol.redact_command()`.
+Tous deux masquent les clés et les numéros de série. Ne jamais loguer de ligne ni de commande
+brute ailleurs, ni un `Channel`/`DongleInfo` autrement que par son `__repr__`.
+
+Le sens commande est nécessaire parce que `execute()` accepte des commandes brutes : `AT$C=`
+et `AT$SN=` portent leur secret dans la commande. Ajouter une commande porteuse de secret au
+protocole impose d'ajouter son motif à `redact_command()`. La règle vaut aussi pour les
+messages d'exception : `execute()` construit `CommandRejectedError`, `UnknownCommandError` et
+`ResponseTimeoutError` avec la forme masquée, que l'on retrouve donc dans leur attribut
+`.command`. Les tests `test_debug_logging_never_leaks_a_key_or_a_serial_number` et
+`test_a_raw_command_carrying_a_key_leaks_neither_to_the_logs_nor_to_the_error` gardent la
+propriété.

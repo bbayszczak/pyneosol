@@ -318,10 +318,14 @@ DEBUG pyneosol.dongle: > AT$SF=0,1
 DEBUG pyneosol.dongle: < ['AT$SF:OK'] (0.004s)
 ```
 
-> ✅ **Aucun secret n'entre dans les logs.** Toute réponse du dongle est masquée avant d'être
-> loguée : les clés KeeLoq et les numéros de série deviennent `***`, tandis que l'index du
-> canal et son compteur `sync` restent lisibles. Une trace `DEBUG` peut donc être jointe telle
-> quelle à un rapport de bug.
+> ✅ **Aucun secret n'entre dans les logs.** Le masquage joue **dans les deux sens** : les
+> réponses du dongle comme les commandes envoyées. Les clés KeeLoq et les numéros de série
+> deviennent `***`, tandis que l'index du canal et son compteur `sync` restent lisibles. Une
+> trace `DEBUG` peut donc être jointe telle quelle à un rapport de bug.
+>
+> Le sens commande compte parce que `Dongle.execute()` accepte des commandes brutes : une
+> `AT$C=` ou une `AT$SN=` formée à la main porte son secret dans la commande elle-même. Elle
+> est loguée `AT$C=0,***,0029,***`. Les messages d'exception suivent la même règle.
 
 ## Développement
 

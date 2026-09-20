@@ -34,6 +34,14 @@ _CHANNEL_RE: Final = re.compile(
 #: Label carrying the unit's own serial number in the ``AT&V`` response.
 _SERIAL_LABEL: Final = "S/N"
 
+# The two commands whose arguments carry a secret. The driver implements neither — writing an
+# identity is out of scope and unvalidated — but ``Dongle.execute()`` takes raw commands, so a
+# caller can still form one and it would otherwise reach the logs in clear.
+_WRITE_CHANNEL_RE: Final = re.compile(
+    r"^AT\$C=\d+,(?P<serial>[^,]*),[^,]*,(?P<key>.*)$", re.IGNORECASE
+)
+_WRITE_SERIAL_RE: Final = re.compile(r"^AT\$SN=(?P<serial>.*)$", re.IGNORECASE)
+
 #: Stands in for every secret in a line meant to be logged, like the models' ``__repr__``.
 _MASK: Final = "***"
 
@@ -109,6 +117,25 @@ def _redact_line(line: str) -> str:
     if separator and label.strip() == _SERIAL_LABEL:
         return f"{label}:{_MASK}"
     return line
+
+
+def redact_command(command: str) -> str:
+    """Return ``command`` with every secret masked, so it can safely be logged.
+
+    The outgoing counterpart of :func:`redact`. Masking only the responses would leave a hole:
+    a raw ``AT$C=`` or ``AT$SN=`` carries its secret in the command itself, and a trace is
+    worth nothing if it cannot be pasted into a bug report as it stands.
+    """
+    if (match := _WRITE_CHANNEL_RE.match(command)) is not None:
+        # Same rule as the channel table: the index and the sync counter stay readable, the
+        # identity does not. Right to left, so the offsets stay valid.
+        for start, end in sorted([match.span("serial"), match.span("key")], reverse=True):
+            command = f"{command[:start]}{_MASK}{command[end:]}"
+        return command
+    if (match := _WRITE_SERIAL_RE.match(command)) is not None:
+        start, end = match.span("serial")
+        return f"{command[:start]}{_MASK}{command[end:]}"
+    return command
 
 
 def parse_channel_line(line: str) -> Channel | None:

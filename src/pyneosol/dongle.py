@@ -103,8 +103,12 @@ class Dongle:
             ResponseTimeoutError: no terminator arrived in time.
 
         """
+        # Masked once, then used everywhere the command is exposed: the trace and the three
+        # errors below. The exceptions therefore carry the redacted form in their .command,
+        # which still identifies the command without carrying its secret.
+        redacted = protocol.redact_command(command)
         with self._lock:
-            _LOGGER.debug("> %s", command)
+            _LOGGER.debug("> %s", redacted)
             self._transport.reset_input()
             self._transport.write(protocol.encode(command))
 
@@ -131,13 +135,13 @@ class Dongle:
                             # A bare KO means the verb itself is unknown, a prefixed one that
                             # the command exists but this form or these parameters do not.
                             raise (
-                                UnknownCommandError(command)
+                                UnknownCommandError(redacted)
                                 if terminator[0] is None
-                                else CommandRejectedError(command)
+                                else CommandRejectedError(redacted)
                             )
                         return protocol.payload(lines)
                 if time.monotonic() >= deadline:
-                    raise ResponseTimeoutError(f"no response to {command!r} within {timeout}s")
+                    raise ResponseTimeoutError(f"no response to {redacted!r} within {timeout}s")
                 time.sleep(_POLL_INTERVAL)
 
     def ping(self) -> bool:
