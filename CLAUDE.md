@@ -73,9 +73,12 @@ Toujours passer par `uv`. Python ≥ 3.13, CI sur 3.13 et 3.14.
   aucun workflow — la PR de release n'obtiendrait donc jamais les checks que le ruleset de
   `main` exige et resterait infusionnable. L'App est installée sur le seul dépôt, avec
   `Contents` et `Pull requests` en écriture ; ses identifiants vivent dans les secrets
-  `RELEASE_PLEASE_APP_ID` et `RELEASE_PLEASE_PRIVATE_KEY`. Le `checkout` de la branche de
-  release doit porter le **même** token : sinon le commit de `uv.lock` repart sous le
-  `GITHUB_TOKEN` et laisse la PR sans check sur son dernier commit.
+  `RELEASE_PLEASE_APP_ID` et `RELEASE_PLEASE_PRIVATE_KEY`.
+- Le commit qui resynchronise `uv.lock` est créé par **l'API GitHub**, jamais par un
+  `git commit` dans le *runner* : `main` exige des signatures vérifiées, or un commit fabriqué
+  sur le *runner* n'est pas signé et bloque la fusion de la PR de release (« Commits must have
+  verified signatures »). GitHub signe les commits passés par son API, et l'appel porte le
+  token de l'App, donc la CI se redéclenche sur le nouveau commit.
 
 ## Principes de conception
 
