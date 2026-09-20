@@ -41,6 +41,13 @@ Toujours passer par `uv`. Python ≥ 3.13, CI sur 3.13 et 3.14.
 - **Commits en Conventional Commits**, en anglais. `release-please` s'en sert pour produire le
   CHANGELOG et la version : seuls `feat:` et `fix:` déclenchent une release.
 - Documentation en français, code et docstrings en anglais.
+- **Logging** : `logging` standard, un `_LOGGER = logging.getLogger(__name__)` par module et
+  **aucune configuration** (ni handler, ni niveau, ni format) — l'hôte, typiquement Home
+  Assistant, possède les handlers et filtre sur `pyneosol.<module>`. Tout en `DEBUG`, en
+  formatage paresseux (`_LOGGER.debug("> %s", command)`), jamais de f-string — les règles ruff
+  `LOG` et `G` le vérifient. Les erreurs se
+  lèvent, elles ne se loguent pas : loguer *et* lever produit un doublon dans les journaux de
+  l'appelant.
 - Le linter est strict (docstrings et annotations obligatoires dans `src/`) ; les tests en sont
   dispensés via `per-file-ignores`.
 - Les actions GitHub sont **épinglées sur des SHA complets** (un tag comme `@v4` peut être
@@ -99,3 +106,8 @@ apparaître **ni dans les logs, ni dans les `__repr__`, ni dans les messages d'e
 
 Aucune clé, aucun numéro de série réel ne doit entrer dans le dépôt : les valeurs de
 `tests/fake.py` et de la documentation sont factices.
+
+Côté logs, `Dongle.execute()` est le point de passage unique de toute réponse du dongle : elle
+y traverse `protocol.redact()`, qui masque les clés et les numéros de série. Ne jamais loguer
+de ligne brute ailleurs, ni un `Channel`/`DongleInfo` autrement que par son `__repr__`. Le test
+`test_debug_logging_never_leaks_a_key_or_a_serial_number` garde la propriété.

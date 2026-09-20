@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from pyneosol import Action, Dongle
@@ -140,3 +142,18 @@ def test_read_protection_makes_the_table_unavailable():
     assert dongle.info().read_protection is True
     with pytest.raises(CommandRejectedError):
         dongle.channels()
+
+
+def test_debug_logging_never_leaks_a_key_or_a_serial_number(dongle, fake, caplog):
+    # A debug trace is exactly what gets pasted into a bug report, so it must stay safe to
+    # share whatever the driver was doing. Guards the redaction in Dongle.execute().
+    with caplog.at_level(logging.DEBUG, logger="pyneosol"):
+        dongle.info()
+        dongle.channels()
+
+    logged = caplog.text
+    assert "AT$C?" in logged  # the dialogue is traced at all
+    assert "00001234" not in logged  # the unit's serial number, from AT&V
+    for index in range(CHANNEL_COUNT):
+        assert fake.key_of(index) not in logged
+        assert fake.serial_of(index) not in logged
