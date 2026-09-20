@@ -14,6 +14,7 @@ from .exceptions import (
     CommandRejectedError,
     DongleNotFoundError,
     NotADongleError,
+    ProtocolError,
     ResponseTimeoutError,
     UnknownChannelError,
     UnknownCommandError,
@@ -185,10 +186,17 @@ class Dongle:
         return [channel for channel in self.channels() if channel.is_used]
 
     def transmit_power(self) -> int:
-        """Read the transmit power (``AT$CP?``)."""
+        """Read the transmit power (``AT$CP?``).
+
+        Raises:
+            ProtocolError: the response carried no value.
+
+        """
         lines = self.execute("AT$CP?")
         if not lines:
-            raise ResponseTimeoutError("empty response to AT$CP?")
+            # Not a timeout: execute() returned, so the terminator did arrive and only the
+            # value is missing.
+            raise ProtocolError("no value in the response to AT$CP?")
         return int(lines[0])
 
     # ------------------------------------------------------------------ transmitting
