@@ -13,6 +13,7 @@ from .exceptions import (
     CommandRejectedError,
     DongleNotFoundError,
     NotADongleError,
+    ProtocolError,
     ResponseTimeoutError,
     UnknownChannelError,
     UnknownCommandError,
@@ -167,11 +168,23 @@ class Dongle:
         return [channel for channel in self.channels() if channel.is_used]
 
     def transmit_power(self) -> int:
-        """Read the transmit power (``AT$CP?``)."""
+        """Read the transmit power (``AT$CP?``).
+
+        Raises:
+            ProtocolError: the device terminated its answer without a usable value.
+
+        """
         lines = self.execute("AT$CP?")
+        # Both failures below mean the dialogue itself was fine — execute() got its
+        # terminator — only the payload is not what the protocol describes. Hence
+        # ProtocolError rather than a timeout, and never a bare ValueError: everything this
+        # library raises must stay under NeosolError.
         if not lines:
-            raise ResponseTimeoutError("empty response to AT$CP?")
-        return int(lines[0])
+            raise ProtocolError("no value in the response to AT$CP?")
+        try:
+            return int(lines[0])
+        except ValueError as error:
+            raise ProtocolError(f"unexpected transmit power {lines[0]!r}") from error
 
     # ------------------------------------------------------------------ transmitting
 
