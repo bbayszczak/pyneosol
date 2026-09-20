@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0](https://github.com/bbayszczak/pyneosol/compare/v0.3.0...v0.4.0) (2026-09-20)
+
+
+### Features
+
+* log the AT dialogue without leaking secrets ([#11](https://github.com/bbayszczak/pyneosol/issues/11)) ([d3ad93a](https://github.com/bbayszczak/pyneosol/commit/d3ad93a45dab04358907548ee191f0a09bab7246))
+
+
+### Bug Fixes
+
+* **ci:** create the uv.lock sync commit through the GitHub API ([#19](https://github.com/bbayszczak/pyneosol/issues/19)) ([b91eee0](https://github.com/bbayszczak/pyneosol/commit/b91eee0e8dc7b798fa2ab0bc7c0cc6e571439a07))
+* **dongle:** wrap a non-numeric transmit power in ProtocolError ([#12](https://github.com/bbayszczak/pyneosol/issues/12)) ([4e560cd](https://github.com/bbayszczak/pyneosol/commit/4e560cd32a2a0d54f7e1bb882913d516121d3871))
+
+
+### Documentation
+
+* **readme:** add photos of the validated dongle ([#15](https://github.com/bbayszczak/pyneosol/issues/15)) ([e405433](https://github.com/bbayszczak/pyneosol/commit/e4054337294fab6407f91b32e9b8706f64722636))
+
 ## [0.3.0](https://github.com/bbayszczak/pyneosol/compare/v0.2.0...v0.3.0) (2026-09-18)
 
 
