@@ -35,7 +35,7 @@ jobs:
         id: app-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
         with:
-          app-id: ${{ secrets.RELEASE_PLEASE_APP_ID }}
+          client-id: ${{ secrets.RELEASE_PLEASE_CLIENT_ID }}
           private-key: ${{ secrets.RELEASE_PLEASE_PRIVATE_KEY }}
 
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
@@ -55,10 +55,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ fromJson(steps.release.outputs.pr).headBranchName }}
-          # Même identité que pour la création de la PR : poussé avec le GITHUB_TOKEN, le
-          # commit du lockfile ne déclencherait pas la CI et laisserait la PR sans check sur
-          # son dernier commit.
-          token: ${{ steps.app-token.outputs.token }}
 
       - name: Set up uv
         if: steps.release.outputs.pr
@@ -66,16 +62,26 @@ jobs:
 
       - name: Sync uv.lock with the bumped version
         if: steps.release.outputs.pr
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          BRANCH: ${{ fromJson(steps.release.outputs.pr).headBranchName }}
         run: |
           uv lock
           if git diff --quiet uv.lock; then
             echo "uv.lock already in sync"
             exit 0
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore: sync uv.lock with the release version" uv.lock
-          git push
+          # Le commit passe par l'API et non par `git commit` : le ruleset de main exige des
+          # signatures vérifiées, or un commit fabriqué dans le runner n'est pas signé et
+          # bloquerait la fusion de la PR de release (« Commits must have verified
+          # signatures »). GitHub signe de lui-même les commits créés via son API, comme il
+          # le fait déjà pour ceux de release-please. `sha` est le blob du fichier tel qu'il
+          # est sur la branche : `uv lock` a modifié la copie de travail, pas HEAD.
+          gh api -X PUT "repos/${{ github.repository }}/contents/uv.lock" \
+            -f message="chore: sync uv.lock with the release version" \
+            -f branch="$BRANCH" \
+            -f sha="$(git rev-parse HEAD:uv.lock)" \
+            -f content="$(base64 -w0 uv.lock)"
 
   # `uv build` exécute le backend hatchling et ses dépendances, soit du code tiers. Ce job
   # est donc volontairement dépourvu de `id-token: write` : une dépendance de build
