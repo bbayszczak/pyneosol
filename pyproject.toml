@@ -49,6 +49,8 @@ select = [
     "UP",   # pyupgrade
     "B",    # flake8-bugbear
     "C4",   # flake8-comprehensions
+    "LOG",  # flake8-logging: misuse of the logging module itself
+    "G",    # flake8-logging-format: lazy %s formatting, never an f-string in a log call
     "SIM",  # flake8-simplify
     "RET",  # flake8-return
     "PTH",  # flake8-use-pathlib

@@ -44,7 +44,8 @@ Toujours passer par `uv`. Python ≥ 3.13, CI sur 3.13 et 3.14.
 - **Logging** : `logging` standard, un `_LOGGER = logging.getLogger(__name__)` par module et
   **aucune configuration** (ni handler, ni niveau, ni format) — l'hôte, typiquement Home
   Assistant, possède les handlers et filtre sur `pyneosol.<module>`. Tout en `DEBUG`, en
-  formatage paresseux (`_LOGGER.debug("> %s", command)`), jamais de f-string. Les erreurs se
+  formatage paresseux (`_LOGGER.debug("> %s", command)`), jamais de f-string — les règles ruff
+  `LOG` et `G` le vérifient. Les erreurs se
   lèvent, elles ne se loguent pas : loguer *et* lever produit un doublon dans les journaux de
   l'appelant.
 - Le linter est strict (docstrings et annotations obligatoires dans `src/`) ; les tests en sont
