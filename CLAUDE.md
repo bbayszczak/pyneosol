@@ -24,6 +24,8 @@ src/pyneosol/
   exceptions.py
 tests/
   fake.py        faux dongle rejouant les réponses réelles
+docs/
+  images/        photos du matériel utilisées par le README
 ```
 
 ## Commandes
@@ -106,6 +108,10 @@ apparaître **ni dans les logs, ni dans les `__repr__`, ni dans les messages d'e
 
 Aucune clé, aucun numéro de série réel ne doit entrer dans le dépôt : les valeurs de
 `tests/fake.py` et de la documentation sont factices.
+
+Cela vaut aussi pour les **images** de `docs/images/` : toute photo de matériel entre dans le
+dépôt numéro de série masqué et métadonnées supprimées (`exiftool -all= --icc_profile:all`),
+sans quoi la position GPS de la prise de vue et le numéro de série partent avec le fichier.
 
 Côté logs, `Dongle.execute()` est le point de passage unique de toute réponse du dongle : elle
 y traverse `protocol.redact()`, qui masque les clés et les numéros de série. Ne jamais loguer
