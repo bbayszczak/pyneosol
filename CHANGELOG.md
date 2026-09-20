@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/bbayszczak/pyneosol/compare/v0.4.0...v0.4.1) (2026-09-20)
+
+
+### Bug Fixes
+
+* **ci:** guard the branch name against an absent release pull request ([#20](https://github.com/bbayszczak/pyneosol/issues/20)) ([42f7195](https://github.com/bbayszczak/pyneosol/commit/42f7195db34eb8c7d9e3a0b9b4f1bf533e026598))
+
 ## [0.4.0](https://github.com/bbayszczak/pyneosol/compare/v0.3.0...v0.4.0) (2026-09-20)
 
 
