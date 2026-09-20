@@ -19,9 +19,6 @@ LINE_TERMINATOR: Final = b"\r\n"
 #: Marker identifying a compatible dongle in the ``AT&V`` response.
 IDENTIFICATION_MARKER: Final = "PFX KEELOQ"
 
-#: Number of channels the dongle exposes.
-CHANNEL_COUNT: Final = 50
-
 # Responses end with "<COMMAND>:OK" / "<COMMAND>:KO", or a bare "KO" when the firmware does
 # not know the command at all. The command name echoed back is not always the one sent:
 # "AT$C?" answers "AT$C:OK" while "AT?" answers "AT?:OK". We therefore match the shape rather
