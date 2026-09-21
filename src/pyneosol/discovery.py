@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Final
@@ -28,12 +29,22 @@ class PortInfo:
     product: str | None = None
 
 
-def find_ports() -> list[PortInfo]:
+async def find_ports() -> list[PortInfo]:
     """Return the serial ports whose USB identifiers match the dongle.
 
     An empty list means none was found; it does not mean none is connected, since a device
     reached through a plain serial adapter carries no USB metadata.
+
+    Enumerating the ports walks the host's device tree — ``/sys`` on Linux, IOKit on macOS —
+    which blocks, so it runs in a worker thread. A coroutine rather than a plain function on
+    purpose: :meth:`~pyneosol.Dongle.open` calls it when no port is given, so it sits on the
+    event loop's path, and a library must not stall that loop behind the caller's back.
     """
+    return await asyncio.to_thread(_matching_ports)
+
+
+def _matching_ports() -> list[PortInfo]:
+    """Enumerate and filter the serial ports. Blocking: only call it off the event loop."""
     ports = list(list_ports.comports())
     matching = [
         PortInfo(device=port.device, manufacturer=port.manufacturer, product=port.product)

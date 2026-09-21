@@ -9,7 +9,9 @@ All serial numbers and keys below are made up.
 
 from __future__ import annotations
 
+import asyncio
 import re
+from typing import NoReturn
 
 CHANNEL_COUNT = 50
 FIRST_SERIAL = 0x000AAAA1
@@ -52,6 +54,16 @@ def _frame(lines: list[str], terminator: str) -> bytes:
     return "".join(f"\r\n{line}\r\n" for line in [*lines, terminator]).encode()
 
 
+async def _never() -> NoReturn:
+    """Block for good.
+
+    What a real device does between two commands: it says nothing until asked again. Waiting
+    on an event nobody sets leaves the driver's asyncio.timeout free to fire.
+    """
+    await asyncio.Event().wait()
+    raise AssertionError("an event nobody sets cannot fire")
+
+
 class FakeDongle:
     """In-memory stand-in for the serial link.
 
@@ -72,21 +84,24 @@ class FakeDongle:
 
     # -------------------------------------------------- Transport interface
 
-    def write(self, data: bytes) -> None:
+    async def write(self, data: bytes) -> None:
         """Receive a command and queue its response."""
         command = data.decode().strip()
         self._buffer += self._respond(command)
 
-    def read_available(self) -> bytes:
-        """Return and consume the queued response."""
-        buffered, self._buffer = self._buffer, b""
-        return buffered
+    async def readline(self) -> bytes:
+        """Return the next queued line, or wait for ever once the response is exhausted."""
+        index = self._buffer.find(b"\n")
+        if index < 0:
+            await _never()
+        line, self._buffer = self._buffer[: index + 1], self._buffer[index + 1 :]
+        return line
 
     def reset_input(self) -> None:
         """Drop anything queued."""
         self._buffer = b""
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Mark the link as closed."""
         self.closed = True
 
@@ -150,16 +165,16 @@ class SilentDongle:
         """Nothing to set up."""
         self.closed = False
 
-    def write(self, data: bytes) -> None:
+    async def write(self, data: bytes) -> None:
         """Swallow the command."""
 
-    def read_available(self) -> bytes:
-        """Never return anything."""
-        return b""
+    async def readline(self) -> bytes:
+        """Never answer."""
+        return await _never()
 
     def reset_input(self) -> None:
         """Nothing buffered."""
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Mark as closed."""
         self.closed = True

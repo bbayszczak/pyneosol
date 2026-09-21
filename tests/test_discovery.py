@@ -27,34 +27,34 @@ def ports(monkeypatch):
     return listed
 
 
-def test_finds_a_matching_port(ports):
+async def test_finds_a_matching_port(ports):
     ports.append(
         StubPort("/dev/ttyACM0", USB_VID, USB_PID, "PROFALUX", "KEELOQ USB Device"),
     )
-    found = discovery.find_ports()
+    found = await discovery.find_ports()
     assert [port.device for port in found] == ["/dev/ttyACM0"]
     assert found[0].manufacturer == "PROFALUX"
 
 
-def test_ignores_other_devices(ports):
+async def test_ignores_other_devices(ports):
     # Same Silicon Labs vendor id, different product: a plain USB-serial adapter.
     ports.append(StubPort("/dev/ttyUSB0", USB_VID, 0xEA60, "Silicon Labs"))
     ports.append(StubPort("/dev/ttyS0", None, None))
-    assert discovery.find_ports() == []
+    assert await discovery.find_ports() == []
 
 
-def test_returns_every_match(ports):
+async def test_returns_every_match(ports):
     ports.append(StubPort("/dev/ttyACM0", USB_VID, USB_PID))
     ports.append(StubPort("/dev/ttyACM1", USB_VID, USB_PID))
-    assert len(discovery.find_ports()) == 2
+    assert len(await discovery.find_ports()) == 2
 
 
-def test_debug_logging_never_leaks_the_serial_number_a_port_path_carries(ports, caplog):
+async def test_debug_logging_never_leaks_the_serial_number_a_port_path_carries(ports, caplog):
     # On macOS the device node is named after the unit's USB serial number, so the discovery
     # trace would otherwise identify the user's hardware as surely as the AT&V response.
     ports.append(StubPort("/dev/cu.usbmodem0000000012341", USB_VID, USB_PID))
     with caplog.at_level(logging.DEBUG, logger="pyneosol"):
-        discovery.find_ports()
+        await discovery.find_ports()
 
     assert "0000000012341" not in caplog.text
     assert "usbmodem***" in caplog.text

@@ -17,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import logging
 import sys
 
@@ -39,9 +40,9 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def show_ports() -> None:
+async def show_ports() -> None:
     """List the serial ports whose USB identifiers match a dongle."""
-    ports = find_ports()
+    ports = await find_ports()
     if not ports:
         print("No matching USB device found. Pass --port to try a specific one.")
         return
@@ -49,17 +50,17 @@ def show_ports() -> None:
         print(f"  {port.device}  {port.manufacturer or '?'} / {port.product or '?'}")
 
 
-def show_dongle(dongle: Dongle) -> None:
+async def show_dongle(dongle: Dongle) -> None:
     """Print identification and channel table."""
-    info = dongle.info()
+    info = await dongle.info()
     print("\nDongle")
     print(f"  hardware version : {info.hardware_version}")
     print(f"  software version : {info.software_version}")
     print(f"  frame repeat     : {info.frame_repeat}")
     print(f"  read protection  : {'yes' if info.read_protection else 'no'}")
-    print(f"  transmit power   : {dongle.transmit_power()}")
+    print(f"  transmit power   : {await dongle.transmit_power()}")
 
-    channels = dongle.channels()
+    channels = await dongle.channels()
     used = [channel for channel in channels if channel.is_used]
     print(f"\nChannels: {len(channels)} total, {len(used)} used")
     # Keys are deliberately not printed: they are the secret that commands the shutters.
@@ -69,13 +70,18 @@ def show_dongle(dongle: Dongle) -> None:
         print("  none paired yet")
 
 
-def confirm(action: str, channel: int) -> bool:
-    """Ask before moving a real shutter."""
-    answer = input(f"\nSend {action.upper()} on channel {channel}? This moves a shutter. [y/N] ")
+async def confirm(action: str, channel: int) -> bool:
+    """Ask before moving a real shutter.
+
+    Reading from the terminal blocks, so it happens in a thread: the same reflex the library
+    applies to port discovery, and the reason nothing here ever stalls the event loop.
+    """
+    prompt = f"\nSend {action.upper()} on channel {channel}? This moves a shutter. [y/N] "
+    answer = await asyncio.to_thread(input, prompt)
     return answer.strip().lower() in {"y", "yes", "o", "oui"}
 
 
-def main() -> int:
+async def main() -> int:
     """Run the demonstration."""
     args = parse_args()
     requested = [action for action in ACTIONS if getattr(args, action)]
@@ -93,26 +99,25 @@ def main() -> int:
         logging.basicConfig(level=logging.DEBUG, format="%(levelname)s %(name)s: %(message)s")
 
     print("Looking for a dongle...")
-    show_ports()
+    await show_ports()
 
     try:
-        with Dongle.open(args.port) as dongle:
-            show_dongle(dongle)
+        async with Dongle.connect(args.port) as dongle:
+            await show_dongle(dongle)
 
             if not requested:
                 print("\nRead-only run: nothing was transmitted.")
                 return 0
 
             action = requested[0]
-            if not args.yes and not confirm(action, args.channel):
+            if not args.yes and not await confirm(action, args.channel):
                 print("Cancelled.")
                 return 0
 
-            before = dongle.channel(args.channel).sync
-            getattr(dongle, {"open": "open_shutter", "close": "close_shutter"}.get(action, action))(
-                args.channel
-            )
-            after = dongle.channel(args.channel).sync
+            before = (await dongle.channel(args.channel)).sync
+            method = {"open": "open_shutter", "close": "close_shutter"}.get(action, action)
+            await getattr(dongle, method)(args.channel)
+            after = (await dongle.channel(args.channel)).sync
             # The counter proves a frame left the dongle. It says nothing about the motor:
             # the link is one-way, so there is no way to know whether the shutter moved.
             print(f"\n{action.upper()} sent on channel {args.channel}")
@@ -125,4 +130,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(asyncio.run(main()))

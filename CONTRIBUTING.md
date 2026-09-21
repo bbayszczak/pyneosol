@@ -2,9 +2,14 @@
 
 ## Périmètre
 
-`pyneosol` est un **pilote bas niveau** pour les dongles USB 868 MHz parlant le protocole AT
-« PFX ». Il ne conserve aucun état : position estimée, calibration et persistance appartiennent
-à la couche appelante. Les propositions qui font remonter de l'état ici seront refusées.
+`pyneosol` est un **pilote bas niveau asyncio** pour les dongles USB 868 MHz parlant le
+protocole AT « PFX ». Il ne conserve aucun état : position estimée, calibration et persistance
+appartiennent à la couche appelante. Les propositions qui font remonter de l'état ici seront
+refusées.
+
+L'API est intégralement asynchrone et **rien ne doit bloquer la boucle d'événements** : ni
+`time.sleep`, ni `threading.Lock`, ni appel série synchrone. Ce qui bloque réellement — par
+exemple l'énumération des ports — part dans un thread de travail.
 
 ## Mise en route
 

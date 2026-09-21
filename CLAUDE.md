@@ -4,8 +4,8 @@ Contexte pour Claude Code sur ce dépôt.
 
 ## Le projet
 
-`pyneosol` est un **pilote bas niveau** pour les dongles USB 868 MHz parlant le protocole
-série AT « PFX », compatibles avec les volets roulants Profalux Neosol. Rien d'autre.
+`pyneosol` est un **pilote bas niveau asyncio** pour les dongles USB 868 MHz parlant le
+protocole série AT « PFX », compatibles avec les volets roulants Profalux Neosol. Rien d'autre.
 
 Le protocole est intégralement décrit dans [`docs/SPEC-PROTOCOLE-AT.md`](docs/SPEC-PROTOCOLE-AT.md),
 reconstitué par rétro-ingénierie et **validé sur un `MAI-DONGLE868-1A` (HW `0`, SW `Rev10`)**.
@@ -17,8 +17,8 @@ d'implémenter quoi que ce soit, et ne jamais coder sur la foi d'un point ❓.
 ```
 src/pyneosol/
   protocol.py    encodage et parsing — fonctions pures, aucune I/O
-  transport.py   interface Transport + implémentation pyserial
-  dongle.py      driver synchrone, sérialise le dialogue
+  transport.py   interface Transport (async) + implémentation pyserial-asyncio-fast
+  dongle.py      driver asyncio, sérialise le dialogue
   models.py      Action, Channel, DongleInfo
   discovery.py   détection du port par identifiants USB
   exceptions.py
@@ -37,6 +37,9 @@ uv run pytest            # tests, sans matériel
 ```
 
 Toujours passer par `uv`. Python ≥ 3.13, CI sur 3.13 et 3.14.
+
+Les tests tournent sous `pytest-asyncio` en mode `auto` (`asyncio_mode = "auto"` dans
+`pyproject.toml`) : un test qui touche au pilote s'écrit `async def`, sans décorateur.
 
 ## Conventions
 
@@ -88,11 +91,26 @@ Toujours passer par `uv`. Python ≥ 3.13, CI sur 3.13 et 3.14.
   moteur ne répond jamais. Une commande acceptée signifie qu'une trame est partie, jamais
   qu'un volet a bougé. Toute position estimée, calibration ou persistance appartient à la
   couche appelante — ne pas les faire remonter ici.
-- **Dialogue strictement séquentiel** : une commande en vol à la fois, protégée par un verrou,
-  tampon d'entrée vidé avant chaque envoi.
+- **Dialogue strictement séquentiel** : une commande en vol à la fois, protégée par un
+  `asyncio.Lock`, tampon d'entrée vidé avant chaque envoi.
 - **Lire jusqu'à la terminaison**, jamais avec un délai fixe. `AT$C?` renvoie 51 lignes,
   `AT$SF` une seule.
-- Cœur synchrone assumé : un appelant asynchrone (Home Assistant) délègue à un thread.
+- **Cœur asyncio, et rien qui bloque la boucle.** Le pilote existe pour satisfaire la règle
+  `async-dependency` du *Integration Quality Scale* de Home Assistant, qui n'admet aucune
+  exemption. Aucun `time.sleep`, aucun `threading.Lock`, aucun `serial.Serial` synchrone sur
+  le chemin asynchrone ; ce qui bloque vraiment — l'énumération des ports, l'ouverture du
+  port — part dans un thread de travail.
+- **Attente événementielle, pas de polling.** `Transport.readline()` rend la main dès qu'une
+  ligne arrive et le pilote enveloppe la lecture dans un `asyncio.timeout` : c'est la boucle
+  qui réveille le driver, jamais un réveil périodique. Le corollaire est que la détection de
+  fin de réponse suppose que **la ligne de terminaison se termine par `\r\n`**, ce que la
+  spec confirme (§3, ✅ validé).
+- `Transport` est l'unique point d'extension : quatre méthodes, trois coroutines et un
+  `reset_input()` synchrone puisqu'il ne fait que vider un tampon mémoire. `tests/fake.py`
+  l'implémente, d'où une suite de tests sans matériel.
+- Deux entrées : `await Dongle.open(...)` rend un dongle ouvert que l'appelant referme —
+  c'est la forme qu'utilise Home Assistant —, `async with Dongle.connect(...)` le referme
+  tout seul. `connect()` n'existe que pour éviter `async with await Dongle.open()`.
 
 ## Pièges du protocole
 
@@ -145,6 +163,6 @@ Le **chemin du port** forme une troisième direction, traitée par `protocol.red
 macOS nomme le nœud d'après le numéro de série USB (`/dev/cu.usbmodem0000000012341`), les
 liens `by-id` de Linux aussi. Toute suite d'au moins quatre chiffres y est masquée — le seuil
 laisse `/dev/ttyACM0` lisible, et masque au passage le port TCP d'une URL `socket://`, effet
-de bord assumé. Les trois points de passage sont `discovery.find_ports()`, `Dongle.open()` et
-les messages d'erreur de `SerialTransport` : tout nouvel endroit qui logue ou lève un chemin
-de port doit passer par `redact_port()`.
+de bord assumé. Les points de passage sont `discovery.find_ports()`, `Dongle.open()` et les
+messages d'erreur de `transport.py` — ouverture, écriture, lien perdu : tout nouvel endroit
+qui logue ou lève un chemin de port doit passer par `redact_port()`.

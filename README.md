@@ -5,8 +5,8 @@
 [![Python](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/downloads/)
 [![Licence](https://img.shields.io/badge/licence-MIT-green)](LICENSE)
 
-Bibliothèque Python pour les dongles USB 868 MHz utilisant le protocole série AT « PFX ».
-**Compatible avec** les volets roulants Profalux Neosol et le `MAI-DONGLE868-1A`.
+Bibliothèque Python **asyncio** pour les dongles USB 868 MHz utilisant le protocole série AT
+« PFX ». **Compatible avec** les volets roulants Profalux Neosol et le `MAI-DONGLE868-1A`.
 Entièrement locale : ni box Calyps'HOME, ni cloud.
 
 > ⚠️ **PROJET INDÉPENDANT, SANS AUCUNE AFFILIATION**
@@ -204,8 +204,9 @@ Version` et `Software Version` sont les deux valeurs à communiquer en cas de pr
 
 ## État du projet
 
-🚧 **Alpha.** Le pilotage fonctionne et le protocole est documenté dans
-[`docs/SPEC-PROTOCOLE-AT.md`](docs/SPEC-PROTOCOLE-AT.md). L'API peut encore changer.
+**Stable.** Le pilotage fonctionne, le protocole est documenté dans
+[`docs/SPEC-PROTOCOLE-AT.md`](docs/SPEC-PROTOCOLE-AT.md), et l'API publique suit le
+versionnage sémantique : tout changement cassant passe par une version majeure.
 
 Les changements de chaque version sont consignés dans le [CHANGELOG](CHANGELOG.md), tenu à jour
 automatiquement à partir des messages de commit.
@@ -228,21 +229,63 @@ uv add pyneosol
 
 ## Utilisation
 
+La bibliothèque est **asynchrone** : tout échange avec le dongle est une coroutine, et rien
+n'y bloque la boucle d'événements — ni l'attente des réponses, ni l'ouverture du port, ni la
+détection.
+
 ```python
+import asyncio
+
 from pyneosol import Dongle
 
-with Dongle.open() as dongle:  # détection automatique du port
-    print(dongle.info().software_version)
 
-    for channel in dongle.used_channels():
-        print(channel)  # la clé n'est jamais affichée
+async def main() -> None:
+    async with Dongle.connect() as dongle:  # détection automatique du port
+        print((await dongle.info()).software_version)
 
-    dongle.close_shutter(0)  # descente
-    dongle.stop(0)  # arrêt en cours de course
-    dongle.favourite(0)  # position favorite
+        for channel in await dongle.used_channels():
+            print(channel)  # la clé n'est jamais affichée
+
+        await dongle.close_shutter(0)  # descente
+        await dongle.stop(0)  # arrêt en cours de course
+        await dongle.favourite(0)  # position favorite
+
+
+asyncio.run(main())
 ```
 
-Le port peut aussi être imposé : `Dongle.open("/dev/ttyACM0")`.
+Le port peut aussi être imposé : `Dongle.connect("/dev/ttyACM0")`.
+
+### Ouvrir sans bloc `async with`
+
+`Dongle.connect()` est un gestionnaire de contexte asynchrone : il ouvre le dongle et le
+referme en sortant du bloc. Quand la durée de vie du dongle dépasse un bloc — le cas d'une
+intégration domotique, qui l'ouvre au démarrage et le referme à l'arrêt —, utilisez
+`Dongle.open()`, qui rend simplement le dongle ouvert :
+
+```python
+dongle = await Dongle.open("/dev/ttyACM0")
+try:
+    await dongle.open_shutter(0)
+finally:
+    await dongle.close()
+```
+
+`Dongle.connect()` n'existe que pour éviter la forme `async with await Dongle.open()` ; les
+deux prennent les mêmes arguments.
+
+### Détection du port
+
+`find_ports()` est également une coroutine. L'énumération des ports parcourt l'arborescence
+des périphériques de l'hôte — `/sys` sous Linux, IOKit sous macOS —, ce qui bloque : elle est
+donc exécutée dans un thread de travail plutôt que sur la boucle. `Dongle.open()` l'appelle
+lorsqu'aucun port n'est précisé, autrement dit elle se trouve sur le chemin asynchrone : une
+bibliothèque asyncio n'a pas à y glisser d'appel bloquant à l'insu de l'appelant.
+
+```python
+for port in await find_ports():
+    print(port.device, port.manufacturer, port.product)
+```
 
 > ⚠️ **Aucun retour d'état.** Le dongle ne fait qu'émettre. Une commande acceptée signifie
 > qu'une trame est partie, jamais qu'un volet a bougé, et aucune position n'est lisible.
