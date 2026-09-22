@@ -80,7 +80,7 @@ class Dongle:
                 raise DongleNotFoundError("no serial port matching the dongle USB identifiers")
             port = ports[0].device
 
-        _LOGGER.debug("opening %s", port)
+        _LOGGER.debug("opening %s", protocol.redact_port(port))
         dongle = cls(SerialTransport(port))
         if startup_delay > 0:
             time.sleep(startup_delay)

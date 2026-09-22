@@ -8,7 +8,7 @@ from typing import Protocol, runtime_checkable
 import serial
 
 from .exceptions import DongleNotFoundError, TransportError
-from .protocol import BAUDRATE
+from .protocol import BAUDRATE, redact_port
 
 
 @runtime_checkable
@@ -45,7 +45,9 @@ class SerialTransport:
         try:
             self._serial = serial.Serial(port, baudrate, timeout=timeout)
         except serial.SerialException as error:
-            raise DongleNotFoundError(f"cannot open {port}: {error}") from error
+            # Masked here too: an exception message is quoted in bug reports just like a
+            # log line, and the path may name the unit.
+            raise DongleNotFoundError(f"cannot open {redact_port(port)}: {error}") from error
         self.port = port
 
     def write(self, data: bytes) -> None:
@@ -54,7 +56,7 @@ class SerialTransport:
             self._serial.write(data)
             self._serial.flush()
         except serial.SerialException as error:
-            raise TransportError(f"write failed on {self.port}: {error}") from error
+            raise TransportError(f"write failed on {redact_port(self.port)}: {error}") from error
 
     def read_available(self) -> bytes:
         """Return whatever is buffered, without waiting."""
@@ -62,7 +64,7 @@ class SerialTransport:
             waiting = self._serial.in_waiting
             return self._serial.read(waiting) if waiting else b""
         except serial.SerialException as error:
-            raise TransportError(f"read failed on {self.port}: {error}") from error
+            raise TransportError(f"read failed on {redact_port(self.port)}: {error}") from error
 
     def reset_input(self) -> None:
         """Discard buffered input. Best effort: flushing must never be fatal."""
