@@ -38,7 +38,7 @@ from .transport import SerialTransport, Transport
 # all, as recommended for libraries. Never add a handler, a level or a formatter here.
 logging.getLogger(__name__).addHandler(logging.NullHandler())
 
-__version__ = "0.4.2"  # x-release-please-version
+__version__ = "1.0.0"  # x-release-please-version
 
 __all__ = [
     "USB_PID",
