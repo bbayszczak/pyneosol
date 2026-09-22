@@ -8,6 +8,8 @@ from typing import Final
 
 from serial.tools import list_ports
 
+from .protocol import redact_port
+
 _LOGGER = logging.getLogger(__name__)
 
 #: USB identifiers reported by the dongle. The vendor id belongs to Silicon Labs and is
@@ -46,6 +48,6 @@ def find_ports() -> list[PortInfo]:
         len(ports),
         USB_VID,
         USB_PID,
-        [port.device for port in matching],
+        [redact_port(port.device) for port in matching],
     )
     return matching

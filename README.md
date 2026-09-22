@@ -334,6 +334,16 @@ DEBUG pyneosol.dongle: < ['AT$SF:OK'] (0.004s)
 > Le sens commande compte parce que `Dongle.execute()` accepte des commandes brutes : une
 > `AT$C=` ou une `AT$SN=` formée à la main porte son secret dans la commande elle-même. Elle
 > est loguée `AT$C=0,***,0029,***`. Les messages d'exception suivent la même règle.
+>
+> **Le chemin du port** est masqué lui aussi, car il nomme votre exemplaire sur certains
+> hôtes : macOS baptise le nœud d'après le numéro de série USB
+> (`/dev/cu.usbmodem0000000012341`), tout comme les liens `by-id` sous Linux. Seules les
+> suites d'au moins quatre chiffres disparaissent — `/dev/ttyACM0` reste lisible tel quel :
+>
+> ```
+> DEBUG pyneosol.discovery: 1 of 4 serial ports match 10C4:0003: ['/dev/cu.usbmodem***']
+> DEBUG pyneosol.dongle: opening /dev/cu.usbmodem***
+> ```
 
 ## Développement
 

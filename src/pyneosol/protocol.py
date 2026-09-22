@@ -42,6 +42,12 @@ _WRITE_CHANNEL_RE: Final = re.compile(
 )
 _WRITE_SERIAL_RE: Final = re.compile(r"^AT\$SN=(?P<serial>.*)$", re.IGNORECASE)
 
+# A long run of digits in a port path is the USB serial number the host baked into the device
+# node: macOS names it "/dev/cu.usbmodem0000000012341", Linux "/dev/serial/by-id/usb-..._0001".
+# Four digits is the threshold that leaves the Linux index alone — "/dev/ttyACM0" identifies
+# nothing and is exactly what one needs to read a trace.
+_PORT_SERIAL_RE: Final = re.compile(r"\d{4,}")
+
 #: Stands in for every secret in a line meant to be logged, like the models' ``__repr__``.
 _MASK: Final = "***"
 
@@ -136,6 +142,16 @@ def redact_command(command: str) -> str:
         start, end = match.span("serial")
         return f"{command[:start]}{_MASK}{command[end:]}"
     return command
+
+
+def redact_port(port: str) -> str:
+    """Return a port path safe to log, with the serial number it may carry masked.
+
+    The third direction, next to :func:`redact` and :func:`redact_command`: the device node
+    itself names the unit on some hosts. The rest of the path is left alone, so a trace still
+    says which kind of port was opened, and how many matched.
+    """
+    return _PORT_SERIAL_RE.sub(_MASK, port)
 
 
 def parse_channel_line(line: str) -> Channel | None:

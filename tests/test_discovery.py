@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 
 import pytest
@@ -46,3 +47,14 @@ def test_returns_every_match(ports):
     ports.append(StubPort("/dev/ttyACM0", USB_VID, USB_PID))
     ports.append(StubPort("/dev/ttyACM1", USB_VID, USB_PID))
     assert len(discovery.find_ports()) == 2
+
+
+def test_debug_logging_never_leaks_the_serial_number_a_port_path_carries(ports, caplog):
+    # On macOS the device node is named after the unit's USB serial number, so the discovery
+    # trace would otherwise identify the user's hardware as surely as the AT&V response.
+    ports.append(StubPort("/dev/cu.usbmodem0000000012341", USB_VID, USB_PID))
+    with caplog.at_level(logging.DEBUG, logger="pyneosol"):
+        discovery.find_ports()
+
+    assert "0000000012341" not in caplog.text
+    assert "usbmodem***" in caplog.text

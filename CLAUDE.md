@@ -140,3 +140,11 @@ messages d'exception : `execute()` construit `CommandRejectedError`, `UnknownCom
 `.command`. Les tests `test_debug_logging_never_leaks_a_key_or_a_serial_number` et
 `test_a_raw_command_carrying_a_key_leaks_neither_to_the_logs_nor_to_the_error` gardent la
 propriété.
+
+Le **chemin du port** forme une troisième direction, traitée par `protocol.redact_port()` :
+macOS nomme le nœud d'après le numéro de série USB (`/dev/cu.usbmodem0000000012341`), les
+liens `by-id` de Linux aussi. Toute suite d'au moins quatre chiffres y est masquée — le seuil
+laisse `/dev/ttyACM0` lisible, et masque au passage le port TCP d'une URL `socket://`, effet
+de bord assumé. Les trois points de passage sont `discovery.find_ports()`, `Dongle.open()` et
+les messages d'erreur de `SerialTransport` : tout nouvel endroit qui logue ou lève un chemin
+de port doit passer par `redact_port()`.

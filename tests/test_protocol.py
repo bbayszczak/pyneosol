@@ -132,3 +132,30 @@ def test_redact_command_leaves_harmless_commands_readable(command):
     # Masking too much would make a trace useless: only the two commands that carry a secret
     # are touched, and AT$C? must not be mistaken for AT$C=.
     assert protocol.redact_command(command) == command
+
+
+@pytest.mark.parametrize(
+    ("port", "expected"),
+    [
+        # macOS names the node after the USB serial number of the unit.
+        ("/dev/cu.usbmodem0000000012341", "/dev/cu.usbmodem***"),
+        ("/dev/tty.usbmodem0000000012341", "/dev/tty.usbmodem***"),
+        (
+            "/dev/serial/by-id/usb-Silicon_Labs_KEELOQ_0000000012341-if00",
+            "/dev/serial/by-id/usb-Silicon_Labs_KEELOQ_***-if00",
+        ),
+        # Side effect of a threshold kept deliberately low: the TCP port of a pyserial URL
+        # goes with it. Harmless — it is a development transport, and erring towards masking
+        # is the right way round for a serial number that can be as short as four digits.
+        ("socket://127.0.0.1:8080", "socket://127.0.0.1:***"),
+    ],
+)
+def test_redact_port_masks_the_serial_number_a_path_carries(port, expected):
+    assert protocol.redact_port(port) == expected
+
+
+@pytest.mark.parametrize("port", ["/dev/ttyACM0", "/dev/ttyUSB12", "COM3"])
+def test_redact_port_leaves_a_plain_index_readable(port):
+    # An enumeration index names nothing and is exactly what one reads a trace for; only runs
+    # long enough to be a serial number are masked.
+    assert protocol.redact_port(port) == port
