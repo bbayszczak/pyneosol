@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0](https://github.com/bbayszczak/pyneosol/compare/v0.4.2...v1.0.0) (2026-09-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* every method that talks to the device is a coroutine and must be awaited: Dongle.open(), execute(), ping(), info(), channels(), channel(), used_channels(), transmit_power(), send(), open_shutter(), close_shutter(), stop(), favourite(), register(), close(), and find_ports(). Dongle implements __aenter__/__aexit__ instead of __enter__/__exit__, so `with Dongle.open()` becomes `async with Dongle.connect()`. The Transport interface replaces read_available() with an awaitable readline(), and write() and close() are coroutines; SerialTransport is built with `await SerialTransport.open(port)` rather than its constructor.
+
+### Features
+
+* drive the dongle with asyncio ([#24](https://github.com/bbayszczak/pyneosol/issues/24)) ([4037644](https://github.com/bbayszczak/pyneosol/commit/40376447836c3c88c542454a5a17528f464374a4))
+
+
+### Bug Fixes
+
+* **logging:** mask the serial number a port path carries ([#25](https://github.com/bbayszczak/pyneosol/issues/25)) ([2d3b023](https://github.com/bbayszczak/pyneosol/commit/2d3b023a55d6c2eab90488094208cd3cfa00471c))
+
 ## [0.4.2](https://github.com/bbayszczak/pyneosol/compare/v0.4.1...v0.4.2) (2026-09-20)
 
 
