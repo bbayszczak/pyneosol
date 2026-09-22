@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
-import threading
 import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from types import TracebackType
 from typing import Final
 
@@ -35,25 +37,28 @@ TABLE_TIMEOUT: Final = 6.0
 #: The device needs a moment after the port opens before it answers.
 STARTUP_DELAY: Final = 0.4
 
-_POLL_INTERVAL: Final = 0.01
-
 
 class Dongle:
-    """Synchronous driver.
+    """Asyncio driver.
 
     The AT dialogue is strictly sequential — one command in flight at a time — so every
     exchange is serialised by a lock. The class holds no state about the shutters: the device
     cannot report any (it only transmits), so anything resembling a position belongs to a
     higher layer.
+
+    Every method that talks to the device is a coroutine and never blocks the event loop: the
+    reply is awaited as its lines arrive, not polled.
     """
 
     def __init__(self, transport: Transport) -> None:
         """Wrap an already opened ``transport``."""
         self._transport = transport
-        self._lock = threading.Lock()
+        # Built outside any loop on purpose: an asyncio.Lock binds to the running loop on
+        # first use, not on creation, so a Dongle can be constructed before the loop starts.
+        self._lock = asyncio.Lock()
 
     @classmethod
-    def open(
+    async def open(
         cls,
         port: str | None = None,
         *,
@@ -61,6 +66,9 @@ class Dongle:
         startup_delay: float = STARTUP_DELAY,
     ) -> Dongle:
         """Open a dongle, discovering the port when none is given.
+
+        The caller owns the returned dongle and must :meth:`close` it; :meth:`connect` does
+        that on its own.
 
         Args:
             port: serial port to use. When omitted, the first port whose USB identifiers
@@ -75,26 +83,47 @@ class Dongle:
 
         """
         if port is None:
-            ports = find_ports()
+            ports = await find_ports()
             if not ports:
                 raise DongleNotFoundError("no serial port matching the dongle USB identifiers")
             port = ports[0].device
 
         _LOGGER.debug("opening %s", protocol.redact_port(port))
-        dongle = cls(SerialTransport(port))
+        dongle = cls(await SerialTransport.open(port))
         if startup_delay > 0:
-            time.sleep(startup_delay)
+            await asyncio.sleep(startup_delay)
         if verify:
             try:
-                dongle.info()
+                await dongle.info()
             except Exception:
-                dongle.close()
+                await dongle.close()
                 raise
         return dongle
 
+    @classmethod
+    @asynccontextmanager
+    async def connect(
+        cls,
+        port: str | None = None,
+        *,
+        verify: bool = True,
+        startup_delay: float = STARTUP_DELAY,
+    ) -> AsyncIterator[Dongle]:
+        """Open a dongle for the duration of an ``async with`` block, and close it after.
+
+        Same arguments as :meth:`open`. This exists so that the ergonomic form stays
+        ``async with Dongle.connect() as dongle:`` rather than the ``async with await
+        Dongle.open()`` that an awaitable context manager would impose.
+        """
+        dongle = await cls.open(port, verify=verify, startup_delay=startup_delay)
+        try:
+            yield dongle
+        finally:
+            await dongle.close()
+
     # ------------------------------------------------------------------ dialogue
 
-    def execute(self, command: str, *, timeout: float = DEFAULT_TIMEOUT) -> list[str]:
+    async def execute(self, command: str, *, timeout: float = DEFAULT_TIMEOUT) -> list[str]:
         """Send a raw AT command and return its response lines, terminator excluded.
 
         Raises:
@@ -107,61 +136,61 @@ class Dongle:
         # errors below. The exceptions therefore carry the redacted form in their .command,
         # which still identifies the command without carrying its secret.
         redacted = protocol.redact_command(command)
-        with self._lock:
+        async with self._lock:
             _LOGGER.debug("> %s", redacted)
             self._transport.reset_input()
-            self._transport.write(protocol.encode(command))
+            await self._transport.write(protocol.encode(command))
 
             started = time.monotonic()
-            deadline = started + timeout
-            raw = ""
-            while True:
-                if chunk := self._transport.read_available():
-                    raw += chunk.decode("utf-8", "replace")
-                    lines = protocol.split_lines(raw)
-                    if (terminator := protocol.find_terminator(lines)) is not None:
-                        # Every response the driver receives funnels through here, so masking
-                        # at this single point is what keeps keys and serial numbers out of
-                        # the logs for good. The guard skips that pass — fifty lines for
-                        # AT$C? — when debug logging is off.
-                        if _LOGGER.isEnabledFor(logging.DEBUG):
-                            _LOGGER.debug(
-                                "< %s (%.3fs)",
-                                protocol.redact(lines),
-                                time.monotonic() - started,
-                            )
-                        _, status = terminator
-                        if status == "KO":
-                            # A bare KO means the verb itself is unknown, a prefixed one that
-                            # the command exists but this form or these parameters do not.
-                            raise (
-                                UnknownCommandError(redacted)
-                                if terminator[0] is None
-                                else CommandRejectedError(redacted)
-                            )
-                        return protocol.payload(lines)
-                if time.monotonic() >= deadline:
-                    raise ResponseTimeoutError(f"no response to {redacted!r} within {timeout}s")
-                time.sleep(_POLL_INTERVAL)
+            lines: list[str] = []
+            try:
+                async with asyncio.timeout(timeout):
+                    # Line by line, since every line the device sends ends with CRLF — the
+                    # terminator included. Nothing is polled: the loop hands us each line as
+                    # it lands, and the deadline covers the whole response, however many
+                    # lines it takes.
+                    while (terminator := protocol.find_terminator(lines)) is None:
+                        raw = await self._transport.readline()
+                        lines += protocol.split_lines(raw.decode("utf-8", "replace"))
+            except TimeoutError as error:
+                raise ResponseTimeoutError(
+                    f"no response to {redacted!r} within {timeout}s"
+                ) from error
 
-    def ping(self) -> bool:
+            # Every response the driver receives funnels through here, so masking at this
+            # single point is what keeps keys and serial numbers out of the logs for good.
+            # The guard skips that pass — fifty lines for AT$C? — when debug logging is off.
+            if _LOGGER.isEnabledFor(logging.DEBUG):
+                _LOGGER.debug("< %s (%.3fs)", protocol.redact(lines), time.monotonic() - started)
+            _, status = terminator
+            if status == "KO":
+                # A bare KO means the verb itself is unknown, a prefixed one that the command
+                # exists but this form or these parameters do not.
+                raise (
+                    UnknownCommandError(redacted)
+                    if terminator[0] is None
+                    else CommandRejectedError(redacted)
+                )
+            return protocol.payload(lines)
+
+    async def ping(self) -> bool:
         """Return whether the device answers ``AT``."""
         try:
-            self.execute("AT", timeout=1.0)
+            await self.execute("AT", timeout=1.0)
         except (ResponseTimeoutError, CommandRejectedError, UnknownCommandError):
             return False
         return True
 
     # ------------------------------------------------------------------ reading
 
-    def info(self) -> DongleInfo:
+    async def info(self) -> DongleInfo:
         """Read identification and active configuration (``AT&V``).
 
         Raises:
             NotADongleError: the identification marker is missing.
 
         """
-        lines = self.execute("AT&V")
+        lines = await self.execute("AT&V")
         if protocol.IDENTIFICATION_MARKER not in lines:
             raise NotADongleError(
                 f"device did not report {protocol.IDENTIFICATION_MARKER!r}; "
@@ -169,34 +198,34 @@ class Dongle:
             )
         return protocol.parse_info(lines)
 
-    def channels(self) -> list[Channel]:
+    async def channels(self) -> list[Channel]:
         """Read the whole channel table (``AT$C?``)."""
-        return protocol.parse_channel_table(self.execute("AT$C?", timeout=TABLE_TIMEOUT))
+        return protocol.parse_channel_table(await self.execute("AT$C?", timeout=TABLE_TIMEOUT))
 
-    def channel(self, index: int) -> Channel:
+    async def channel(self, index: int) -> Channel:
         """Read a single channel.
 
         Raises:
             UnknownChannelError: no such channel on this device.
 
         """
-        for channel in self.channels():
+        for channel in await self.channels():
             if channel.index == index:
                 return channel
         raise UnknownChannelError(f"channel {index} is not exposed by this dongle")
 
-    def used_channels(self) -> list[Channel]:
+    async def used_channels(self) -> list[Channel]:
         """Return the channels that have already transmitted, i.e. the paired ones."""
-        return [channel for channel in self.channels() if channel.is_used]
+        return [channel for channel in await self.channels() if channel.is_used]
 
-    def transmit_power(self) -> int:
+    async def transmit_power(self) -> int:
         """Read the transmit power (``AT$CP?``).
 
         Raises:
             ProtocolError: the response carried no value, or one that is not a number.
 
         """
-        lines = self.execute("AT$CP?")
+        lines = await self.execute("AT$CP?")
         if not lines:
             # Not a timeout: execute() returned, so the terminator did arrive and only the
             # value is missing.
@@ -215,35 +244,35 @@ class Dongle:
 
     # ------------------------------------------------------------------ transmitting
 
-    def send(self, channel: int, action: Action) -> None:
+    async def send(self, channel: int, action: Action) -> None:
         """Transmit ``action`` on ``channel`` (``AT$SF``).
 
         Success only means the dongle accepted and transmitted the frame. The device cannot
         tell whether a motor acted on it: the link is one-way.
         """
-        self.execute(f"AT$SF={channel},{int(action)}")
+        await self.execute(f"AT$SF={channel},{int(action)}")
 
-    def open_shutter(self, channel: int) -> None:
+    async def open_shutter(self, channel: int) -> None:
         """Start opening. The motor runs until its end stop, or until :meth:`stop`."""
-        self.send(channel, Action.OPEN)
+        await self.send(channel, Action.OPEN)
 
-    def close_shutter(self, channel: int) -> None:
+    async def close_shutter(self, channel: int) -> None:
         """Start closing. The motor runs until its end stop, or until :meth:`stop`."""
-        self.send(channel, Action.CLOSE)
+        await self.send(channel, Action.CLOSE)
 
-    def stop(self, channel: int) -> None:
+    async def stop(self, channel: int) -> None:
         """Stop the motor where it is."""
-        self.send(channel, Action.STOP)
+        await self.send(channel, Action.STOP)
 
-    def favourite(self, channel: int) -> None:
+    async def favourite(self, channel: int) -> None:
         """Send the shutter to its favourite position.
 
         The position is stored in the motor, and is recorded from the original remote, not
         through the dongle. Calling this on a motor with no favourite set does nothing.
         """
-        self.send(channel, Action.FAVOURITE)
+        await self.send(channel, Action.FAVOURITE)
 
-    def register(self, channel: int) -> None:
+    async def register(self, channel: int) -> None:
         """Start pairing ``channel`` with a motor.
 
         This opens a window of roughly sixty seconds. Pairing only completes if, during that
@@ -251,23 +280,23 @@ class Dongle:
         which is also what selects the shutter, leaving the others untouched. See
         ``docs/SPEC-PROTOCOLE-AT.md`` for the sequence.
         """
-        self.send(channel, Action.REGISTER)
+        await self.send(channel, Action.REGISTER)
 
     # ------------------------------------------------------------------ lifecycle
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Release the serial port."""
-        self._transport.close()
+        await self._transport.close()
 
-    def __enter__(self) -> Dongle:
-        """Return self, for use as a context manager."""
+    async def __aenter__(self) -> Dongle:
+        """Return self, for use as an async context manager."""
         return self
 
-    def __exit__(
+    async def __aexit__(
         self,
         exc_type: type[BaseException] | None,
         exc: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
         """Close the port on exit."""
-        self.close()
+        await self.close()

@@ -3,11 +3,13 @@
 Compatible with Profalux Neosol roller shutters and the MAI-DONGLE868-1A. Independent project,
 not affiliated with any manufacturer — see the README.
 
+The driver is asyncio: every exchange with the device is a coroutine.
+
 Example:
     >>> from pyneosol import Dongle
-    >>> with Dongle.open() as dongle:  # doctest: +SKIP
-    ...     print(dongle.info().software_version)
-    ...     dongle.close_shutter(0)
+    >>> async with Dongle.connect() as dongle:  # doctest: +SKIP
+    ...     print((await dongle.info()).software_version)
+    ...     await dongle.close_shutter(0)
 
 """
 
