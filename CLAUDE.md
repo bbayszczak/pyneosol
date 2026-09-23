@@ -121,16 +121,24 @@ Les tests tournent sous `pytest-asyncio` en mode `auto` (`asyncio_mode = "auto"`
 - Dans la table des canaux, un **espace** précède la clé, pas les autres champs.
 - Le compteur `sync` est en hexadécimal et s'incrémente à chaque trame émise, `register`
   compris.
+- `unregister` (action `14`) ne fait rien seul : il faut ensuite deux descentes en butée
+  basse à la télécommande d'origine (spec §10). Le dongle ne touche pas au canal, qui garde
+  un `sync` non nul et reste donc « utilisé » : savoir qu'un canal est libre relève de
+  l'appelant.
+- `sync` non nul = condition **nécessaire, pas suffisante** d'un appairage (spec §6) :
+  `used_channels()` rend des candidats, jamais un état. Ne pas chercher à « corriger » cela
+  dans le pilote.
 
 ## À ne pas faire
 
 - ⛔ **Ne jamais implémenter ni envoyer `ATZ`** (reset usine : efface la table des canaux,
   donc tous les appairages), ni `AT&F`.
-- ⛔ **Ne pas exposer l'action `14`** (*unregister*) : destructive et jamais testée.
 - ⛔ **Ne pas balayer les codes d'action non attribués** (`3`, `5`–`10`, `12`, `13`) : le
   risque est de dérégler les fins de course des moteurs.
 - ⛔ **Ne pas implémenter `AT$C=`** (écriture d'identité) tant qu'elle n'a pas été validée :
   une écriture malformée écrase un appairage.
+- ⛔ **Ne jamais remettre un `sync` à zéro**, même pour marquer un canal désappairé comme
+  libre : le compteur KeeLoq doit rester croissant (rejeu, désynchronisation — spec §9).
 
 ## Sécurité
 

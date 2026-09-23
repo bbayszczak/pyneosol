@@ -77,6 +77,7 @@ async def test_transmit_power(dongle):
         ("stop", Action.STOP),
         ("favourite", Action.FAVOURITE),
         ("register", Action.REGISTER),
+        ("unregister", Action.UNREGISTER),
     ],
 )
 async def test_movement_commands_transmit_the_right_code(dongle, fake, method, action):

@@ -36,11 +36,12 @@ annotations obligatoires) ; les tests en sont dispensés.
 Ces points sont destructifs pour le matériel de l'utilisateur et ne seront pas fusionnés :
 
 - ⛔ `ATZ` (reset usine : efface la table des canaux, donc tous les appairages) et `AT&F`.
-- ⛔ L'action `14` (*unregister*) : destructive et jamais testée.
 - ⛔ Le balayage des codes d'action non attribués (`3`, `5`–`10`, `12`, `13`) : risque de
   dérégler les fins de course des moteurs.
 - ⛔ `AT$C=` (écriture d'identité) tant qu'elle n'est pas validée : une écriture malformée
   écrase un appairage.
+- ⛔ La remise à zéro d'un compteur `sync`, même pour marquer libre un canal désappairé : le
+  compteur KeeLoq doit rester croissant (voir le §9 de la spec).
 
 ## Sécurité
 

@@ -291,9 +291,27 @@ déjà présentes dans le dongle.
 
 ### Détecter les canaux en service
 
-Un canal dont le `sync` est différent de `0000` a déjà émis, et correspond donc en principe à
-un volet appairé. C'est l'heuristique à utiliser pour repérer les canaux occupés — sachant
-qu'un `sync` non nul prouve seulement qu'une trame a été émise, pas qu'un moteur a répondu.
+Un canal dont le `sync` est différent de `0000` a déjà émis. C'est l'heuristique à utiliser
+pour repérer les canaux occupés — sachant qu'un `sync` non nul prouve seulement qu'une trame a
+été émise, pas qu'un moteur a répondu.
+
+✅ **Aucun moyen de savoir, depuis le dongle, si un canal est appairé.** Le lien est
+unidirectionnel (§12) et la table ne porte que la série, le compteur et la clé.
+
+Un `sync` non nul est une condition **nécessaire mais pas suffisante** :
+
+- **nécessaire** — un canal appairé a forcément émis, au moins sa trame `11` : l'heuristique
+  ne manque aucun volet réellement appairé ;
+- **pas suffisante** — elle remonte aussi des canaux qu'aucun moteur n'écoute : un `register`
+  dont la séquence n'a pas abouti (`sync` à `0001`), un volet désappairé (§10), un moteur
+  remplacé ou démonté.
+
+Elle sert donc à produire des **candidats**, pas un état. Quel canal pilote quel volet, et
+quel canal a été libéré, relève de la couche appelante, qui le conserve de son côté. Seule
+une personne peut trancher pour un candidat, par exemple en émettant un bref mouvement et en
+constatant si le volet bouge.
+
+Remettre le `sync` à `0000` pour marquer un canal libre est **proscrit** : voir §9.
 
 ---
 
@@ -335,7 +353,7 @@ AT$SF=<channel>,<code>
 | `2` | stop | ✅ validé |
 | `4` | appel de la position favorite | ✅ validé |
 | `11` | enregistrer — *register* | ✅ validé (voir §10) |
-| `14` | désenregistrer — *unregister* | ❓ non testé |
+| `14` | désenregistrer — *unregister* | ✅ validé (voir §10) |
 
 ### Sémantique des mouvements
 
@@ -428,6 +446,21 @@ coup qu'une opération n'a produit aucun effet de bord.
 > 💡 Comparer la table avant et après une opération est le moyen le plus fiable de contrôler
 > ce qui a réellement été émis. À utiliser systématiquement dans les tests.
 
+### Ne jamais remettre le compteur à zéro
+
+⛔ Remettre le `sync` d'un canal à `0000` — par exemple pour le faire apparaître libre après un
+désappairage — est à proscrire :
+
+- **il faudrait `AT$C=`**, non validée (§7) : une écriture malformée écrase l'identité ;
+- **KeeLoq repose sur un compteur croissant.** Un récepteur KeeLoq rejette les trames dont le
+  compteur n'excède pas le dernier reçu, c'est sa protection contre le rejeu. Remettre à zéro
+  un canal encore appairé — un désappairage qui a échoué sans qu'on le sache — le rendrait
+  inopérant jusqu'à ce que le compteur ait rattrapé son ancienne valeur ; réappairer un canal
+  remis à zéro rendrait de nouveau valides les trames déjà émises, qu'un tiers aurait pu
+  enregistrer. ❓ Principe général de KeeLoq, non vérifié sur ces moteurs ;
+- **c'est inutile** : un canal désappairé se réappaire tel quel, `sync` non nul compris
+  (§10).
+
 ---
 
 ## 10. Appairage d'un volet
@@ -440,7 +473,7 @@ moteur cible**.
 
 ### Procédure
 
-1. Choisir un **canal libre** (`sync` à `0000`).
+1. Choisir un **canal libre** : `sync` à `0000`, ou canal désappairé (voir plus bas).
 2. Placer le volet cible **à mi-course**.
 3. Émettre `AT$SF=<canal>,11` → ouvre une fenêtre d'environ **60 secondes**.
 4. Depuis **la télécommande d'origine du volet cible**, dérouler la séquence :
@@ -465,6 +498,43 @@ Le canal est alors appairé : `AT$SF=<canal>,0|1|2` pilote le volet.
 - ❓ La chorégraphie décrite est celle documentée pour ce matériel. D'autres modèles de
   télécommande utilisent un sélecteur `P`/`N` et un appui long sur *stop* — variante non
   testée ici.
+
+### Désappairage
+
+✅ **Validé**
+
+Symétrique de l'appairage : une trame `14` émise par le dongle, suivie d'une séquence à la
+télécommande d'origine — mais une séquence **différente** de celle de l'appairage.
+
+1. Placer le volet cible **à mi-course**, depuis sa télécommande d'origine.
+2. Émettre `AT$SF=<canal>,14`.
+3. Dans la minute qui suit, depuis **la télécommande d'origine du volet cible** :
+   1. **descente** — attendre la butée basse ;
+   2. **montée** — environ 2 lattes, puis **stop** ;
+   3. **descente** — attendre la butée basse.
+4. Le moteur confirme par un **bref va-et-vient**.
+
+Le moteur n'obéit alors plus au canal. Procédure calquée sur celle qui supprime une
+télécommande supplémentaire de ces moteurs (cf. §17), la trame `14` tenant lieu de la
+manipulation *stop* + sélecteur `P` sur la télécommande à supprimer.
+
+- ✅ **La trame seule ne fait rien.** Sans la séquence, le moteur ne réagit pas et reste
+  appairé. La séquence d'appairage (butées hautes) à la place de celle-ci ne désappaire pas
+  non plus.
+- ✅ **Le désappairage ne touche que le canal visé.** La télécommande d'origine continue de
+  fonctionner.
+- ✅ **Le dongle ne modifie pas le canal.** Série et clé restent identiques, et le `sync`
+  reste non nul : un canal désappairé reste compté comme « utilisé » par l'heuristique du
+  §6. Seule la couche appelante sait qu'il est libre, et le compteur ne doit pas être remis à
+  zéro pour le signaler (§9).
+- ✅ **Seule une personne peut constater le succès** : le va-et-vient est l'unique
+  confirmation, le dongle ne reçoit rien. La couche appelante doit la faire constater avant de
+  tenir le canal pour libre.
+- ✅ **Le canal se réappaire normalement** par la procédure ci-dessus, trame `11`, bien que
+  son `sync` soit non nul et que son identité ait déjà servi.
+- ✅ **La suppression d'un volet dans l'application Calyps'home ne désappaire pas le
+  moteur** : elle ne demande aucune manipulation, le volet obéit toujours au canal ensuite, et
+  l'identité du canal n'est pas réécrite. La box se contente d'oublier le volet.
 
 ---
 
@@ -550,15 +620,15 @@ cette bibliothèque.
 | Commande | Risque |
 |---|---|
 | `ATZ` | **Reset usine.** Effacerait vraisemblablement toute la table des canaux, donc l'ensemble des appairages. Jamais testé. |
-| `AT$SF=<canal>,14` | *Unregister* — désappairerait le volet du canal visé. |
+| `AT$SF=<canal>,14` | *Unregister* — inoffensif seul ; suivi de sa séquence à la télécommande, désappaire le volet du canal visé (§10), qui se réappaire ensuite normalement. |
 | `AT$C=<canal>,...` | Écrase l'identité du canal, donc son appairage. |
 | `AT$SN=` | Modifierait un numéro de série, avec un risque de désynchronisation. |
 
 **Garde-fous recommandés dans la bibliothèque :**
 
 - ne jamais exposer `ATZ` dans l'API publique, ou l'assortir d'une confirmation explicite ;
-- refuser par défaut toute écriture (`AT$C=`, code `14`) sur un canal dont le `sync` est non
-  nul, sauf paramètre explicite de forçage ;
+- refuser par défaut toute écriture `AT$C=` sur un canal dont le `sync` est non nul, sauf
+  paramètre explicite de forçage ;
 - proposer un export complet de la table **avant** toute opération destructive.
 
 ---
@@ -598,7 +668,6 @@ Deux points de l'analyse antérieure sont infirmés par l'observation directe :
 
 À confirmer par l'expérimentation :
 
-- [ ] `AT$SF=<canal>,14` — *unregister* : effet réel côté moteur
 - [ ] Second favori (`FAV_CALL_2`) et enregistrement par trame (`FAV_SET_1`, `FAV_SET_2`) :
       probablement **inexistants** côté protocole, le greffon de la box n'émettant que six
       actions (§8). À ne pas rechercher en balayant les codes non attribués.
@@ -668,5 +737,7 @@ Recommandations pour `pyneosol`, issues des observations ci-dessus.
   document le confirme sur plusieurs points, le complète et en corrige deux (voir §13).
 - [Calypshome-ha](https://github.com/akoonet-homeassistant/Calypshome-ha) — intégration Home
   Assistant passant par le cloud du fabricant.
+- [Supprimer une télécommande supplémentaire (moteur Neosol)](https://flip-depannage.fr/notice/supprimer-une-telecommande-supplementaire-moteur-solaire/)
+  — procédure à la télécommande dont dérive le désappairage (§10).
 - Fréquence porteuse relevée par des travaux tiers : **868,425 MHz**, modulation OOK,
   codage KeeLoq.

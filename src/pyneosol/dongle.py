@@ -215,7 +215,12 @@ class Dongle:
         raise UnknownChannelError(f"channel {index} is not exposed by this dongle")
 
     async def used_channels(self) -> list[Channel]:
-        """Return the channels that have already transmitted, i.e. the paired ones."""
+        """Return the channels that have already transmitted — pairing candidates, not a state.
+
+        Every paired channel is in this list, but so is a channel whose pairing never
+        completed, or one that has since been unregistered: the dongle cannot tell them apart.
+        Which channels are really paired is for the caller to track.
+        """
         return [channel for channel in await self.channels() if channel.is_used]
 
     async def transmit_power(self) -> int:
@@ -281,6 +286,17 @@ class Dongle:
         ``docs/SPEC-PROTOCOLE-AT.md`` for the sequence.
         """
         await self.send(channel, Action.REGISTER)
+
+    async def unregister(self, channel: int) -> None:
+        """Start unpairing ``channel`` from its motor.
+
+        The frame alone does nothing: within the following minute, the motor must be taken
+        **from its own remote** to its bottom stop twice, raised a couple of slats in between;
+        it confirms with a short back-and-forth. The dongle leaves the channel untouched — same
+        identity, non-zero sync — so it still reads as used, and can be paired again with
+        :meth:`register`. See ``docs/SPEC-PROTOCOLE-AT.md`` for the sequence.
+        """
+        await self.send(channel, Action.UNREGISTER)
 
     # ------------------------------------------------------------------ lifecycle
 

@@ -256,6 +256,22 @@ asyncio.run(main())
 
 Le port peut aussi être imposé : `Dongle.connect("/dev/ttyACM0")`.
 
+### Désappairer un volet
+
+`await dongle.unregister(canal)` émet la trame de désappairage, qui ne fait rien seule : dans
+la minute qui suit, amenez le volet **deux fois en butée basse depuis sa télécommande
+d'origine**, en le remontant de 2 lattes entre les deux. Le moteur valide par un bref
+va-et-vient et n'obéit plus au canal. Partez du volet à mi-course.
+
+Seule cette confirmation visuelle atteste le succès : le dongle ne reçoit rien et ne touche
+pas au canal, qui garde son identité et un compteur non nul, puis se réappaire normalement avec
+`register()`. Le dongle ne sait donc pas quels canaux sont appairés : `used_channels()` donne
+des **candidats** — tout canal appairé y figure, mais pas seulement —, et c'est à
+l'application de retenir quel canal pilote quel volet. Le compteur n'est jamais remis à zéro,
+pour des raisons de sécurité KeeLoq.
+
+Procédure et justifications aux §6, §9 et §10 de la [spec](docs/SPEC-PROTOCOLE-AT.md).
+
 ### Ouvrir sans bloc `async with`
 
 `Dongle.connect()` est un gestionnaire de contexte asynchrone : il ouvre le dongle et le

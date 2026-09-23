@@ -9,10 +9,9 @@ from enum import IntEnum
 class Action(IntEnum):
     """Action codes accepted by ``AT$SF=<channel>,<code>``.
 
-    Only the codes validated on real hardware are exposed. The firmware accepts at least two
-    more (``14`` to unregister, and unassigned codes) but they are deliberately left out:
-    unregister is destructive and untested, and probing the unassigned range risks altering
-    the motor end-stop settings.
+    Only the codes validated on real hardware are exposed. The firmware accepts more
+    (unassigned codes) but they are deliberately left out: probing the unassigned range risks
+    altering the motor end-stop settings.
     """
 
     OPEN = 0
@@ -20,6 +19,7 @@ class Action(IntEnum):
     STOP = 2
     FAVOURITE = 4
     REGISTER = 11
+    UNREGISTER = 14
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,8 +60,9 @@ class Channel:
         """Whether this channel has ever transmitted.
 
         The counter increments on every frame sent, so a non-zero value means the channel has
-        been used — in practice, that it is paired. It proves a frame was emitted, never that
-        a motor acted on it.
+        been used. It proves a frame was emitted, never that a motor acted on it: a paired
+        channel is always used, but a used channel may be unpaired — failed pairing, or
+        unregistered since.
         """
         return self.sync != 0
 
