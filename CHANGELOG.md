@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/bbayszczak/pyneosol/compare/v1.0.0...v1.1.0) (2026-09-23)
+
+
+### Features
+
+* add unregister action ([#27](https://github.com/bbayszczak/pyneosol/issues/27)) ([e7e8c44](https://github.com/bbayszczak/pyneosol/commit/e7e8c446e78c3981a69c954cd6d468fe925e401f))
+
 ## [1.0.0](https://github.com/bbayszczak/pyneosol/compare/v0.4.2...v1.0.0) (2026-09-22)
 
 
